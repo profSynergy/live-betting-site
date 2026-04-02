@@ -15,20 +15,49 @@
     <button onclick="login()">Login</button>
 
     <script>
-        function login() {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
+async function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
 
-            // Temporary credentials for testing
-            if(user === "admin" && pass === "1234") {
-                window.location.href = "admin.html";
-            } else if(user === "player" && pass === "1234") {
-                window.location.href = "player.html";
-            } else {
-                alert("Invalid login");
-            }
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+            alert(data.error);
+            return;
         }
-    </script>
+
+        // Redirect based on role
+        if (data.role === "admin") {
+            window.location.href = "admin.html";
+        } 
+        else if (data.role === "player") {
+            window.location.href = "player.html";
+        } 
+        else if (data.role === "master_agent") {
+            alert("Master Agent panel coming next");
+        }
+        else if (data.role === "declarator") {
+            alert("Declarator panel coming next");
+        }
+        else {
+            alert("Unknown role");
+        }
+
+    } catch (err) {
+        alert("Server error");
+        console.error(err);
+    }
+}
+</script>
 
 </body>
 </html>
