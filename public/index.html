@@ -7,6 +7,30 @@
     <link rel="stylesheet" href="style.css">
     <!-- Font Awesome for icons -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <style>
+        /* Snackbar styling */
+        #snackbar {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 14px;
+            border-radius: 4px;
+            position: fixed;
+            z-index: 999;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 16px;
+        }
+        #snackbar.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+    </style>
 </head>
 <body>
     <div id="snackbar"></div>
@@ -40,63 +64,70 @@
     </div>
 
     <script>
-    function showSnackbar(message) {
-        const bar = document.getElementById("snackbar");
-        bar.textContent = message;
-        bar.className = "show";
-
-        setTimeout(() => {
-            bar.className = bar.className.replace("show", "");
-        }, 3000);
-    }
-    async function login() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        if (!username || !password) {
-            showSnackbar("Please enter both username and password");
-            return;
+        // Show snackbar notification
+        function showSnackbar(message) {
+            const bar = document.getElementById("snackbar");
+            bar.textContent = message;
+            bar.className = "show";
+            setTimeout(() => {
+                bar.className = bar.className.replace("show", "");
+            }, 3000);
         }
 
-        try {
-            const res = await fetch('/api/login', {
-                method: 'POST',
-                credentials: 'include', // ✅ ADD THIS
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
+        // Login function
+        async function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
 
-            const data = await res.json();
-
-            if (data.error) {
-                showSnackbar(data.error);
+            if (!username || !password) {
+                showSnackbar("Please enter both username and password");
                 return;
             }
 
-            // Redirect based on role
-            switch(data.role) {
-                case "admin":
-                    window.location.href = "admin.html";
-                    break;
-                case "player":
-                    window.location.href = "player.html";
-                    break;
-                case "master_agent":
-                    showSnackbar("Master Agent panel coming next");
-                    break;
-                case "declarator":
-                    showSnackbar("Declarator panel coming next");
-                    break;
-                default:
-                    showSnackbar("Unknown role");
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    credentials: 'include', // important for session cookies
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({ error: res.statusText }));
+                    showSnackbar(errorData.error || "Login failed");
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.error) {
+                    showSnackbar(data.error);
+                    return;
+                }
+
+                // Redirect based on role
+                switch(data.role) {
+                    case "admin":
+                        window.location.href = "admin.html";
+                        break;
+                    case "player":
+                        window.location.href = "player.html";
+                        break;
+                    case "master_agent":
+                        showSnackbar("Master Agent panel coming next");
+                        break;
+                    case "declarator":
+                        showSnackbar("Declarator panel coming next");
+                        break;
+                    default:
+                        showSnackbar("Unknown role");
+                }
+
+            } catch (err) {
+                showSnackbar("Server error");
+                console.error(err);
             }
-
-        } catch (err) {
-            showSnackbar("Server error");
-            console.error(err);
         }
-    }
     </script>
-
 </body>
 </html>

@@ -16,8 +16,8 @@ const app = express();
 // ==========================
 app.use(helmet());
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: true,        // allow your frontend origin or true for testing
+  credentials: true    // needed for sessions
 }));
 app.use(express.json());
 
@@ -31,14 +31,14 @@ app.use((req, res, next) => {
 // SESSION CONFIG
 // ==========================
 app.use(session({
-  secret: 'secret-key', // ⚠️ change in production
+  secret: 'secret-key', // change in production
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,        // true if HTTPS
+    secure: false,        // true if using HTTPS
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 1000 * 60 * 30 // 30 minutes session
+    maxAge: 1000 * 60 * 30 // 30 min
   }
 }));
 
@@ -46,7 +46,7 @@ app.use(session({
 // RATE LIMITER (ANTI-BRUTE FORCE)
 // ==========================
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 mins
+  windowMs: 15 * 60 * 1000,
   max: 5,
   message: { error: "Too many login attempts. Try again later." }
 });
@@ -55,9 +55,7 @@ const loginLimiter = rateLimit({
 // AUTH MIDDLEWARE
 // ==========================
 function isAuthenticated(req, res, next) {
-  if (!req.session.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  if (!req.session.user) return res.status(401).json({ error: "Unauthorized" });
   next();
 }
 
@@ -66,37 +64,11 @@ function isAuthenticated(req, res, next) {
 // ==========================
 function authorizeRoles(...roles) {
   return (req, res, next) => {
-    if (!req.session.user) {
-      return res.redirect('/');
-    }
-
-    if (!roles.includes(req.session.user.role)) {
-      return res.status(403).send("Forbidden");
-    }
-
+    if (!req.session.user) return res.redirect('/');
+    if (!roles.includes(req.session.user.role)) return res.status(403).send("Forbidden");
     next();
   };
 }
-
-// ==========================
-// GLOBAL PAGE PROTECTION (🔥 IMPORTANT FIX)
-// ==========================
-app.use((req, res, next) => {
-  const protectedPages = [
-    '/admin.html',
-    '/agent.html',
-    '/declarator.html',
-    '/player.html'
-  ];
-
-  if (protectedPages.includes(req.path)) {
-    if (!req.session.user) {
-      return res.redirect('/');
-    }
-  }
-
-  next();
-});
 
 // ==========================
 // TEST ROUTE
@@ -112,40 +84,20 @@ app.post('/api/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE username = $1',
-      [username]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: "User not found" });
-    }
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (result.rows.length === 0) return res.status(401).json({ error: "User not found" });
 
     const user = result.rows[0];
-
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ error: "Wrong password" });
-    }
+    if (!match) return res.status(401).json({ error: "Wrong password" });
 
     // Save session
-    req.session.user = {
-      id: user.id,
-      username: user.username,
-      role: user.role
-    };
+    req.session.user = { id: user.id, username: user.username, role: user.role };
 
     // Update status
-    await pool.query(
-      'UPDATE users SET status = $1 WHERE id = $2',
-      ['online', user.id]
-    );
+    await pool.query('UPDATE users SET status = $1 WHERE id = $2', ['online', user.id]);
 
-    res.json({
-      message: "Login success",
-      role: user.role
-    });
-
+    res.json({ message: "Login success", role: user.role });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -155,21 +107,10 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 // ==========================
 // ROLE-PROTECTED PAGES
 // ==========================
-app.get('/admin.html', authorizeRoles('admin'), (req, res) => {
-  res.sendFile(__dirname + '/public/admin.html');
-});
-
-app.get('/agent.html', authorizeRoles('master_agent', 'sub_agent', 'agent'), (req, res) => {
-  res.sendFile(__dirname + '/public/agent.html');
-});
-
-app.get('/declarator.html', authorizeRoles('declarator'), (req, res) => {
-  res.sendFile(__dirname + '/public/declarator.html');
-});
-
-app.get('/player.html', authorizeRoles('player'), (req, res) => {
-  res.sendFile(__dirname + '/public/player.html');
-});
+app.get('/admin.html', authorizeRoles('admin'), (req, res) => res.sendFile(__dirname + '/public/admin.html'));
+app.get('/agent.html', authorizeRoles('master_agent','sub_agent','agent'), (req, res) => res.sendFile(__dirname + '/public/agent.html'));
+app.get('/declarator.html', authorizeRoles('declarator'), (req, res) => res.sendFile(__dirname + '/public/declarator.html'));
+app.get('/player.html', authorizeRoles('player'), (req, res) => res.sendFile(__dirname + '/public/player.html'));
 
 // ==========================
 // DASHBOARD API
@@ -177,21 +118,9 @@ app.get('/player.html', authorizeRoles('player'), (req, res) => {
 app.get('/api/dashboard', isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.id;
-
-    const userResult = await pool.query(
-      'SELECT points, role FROM users WHERE id = $1',
-      [userId]
-    );
-
-    const agentsResult = await pool.query(
-      'SELECT COUNT(*) FROM users WHERE parent_id = $1 AND role = $2',
-      [userId, 'agent']
-    );
-
-    const playersResult = await pool.query(
-      'SELECT COUNT(*) FROM users WHERE parent_id = $1 AND role = $2',
-      [userId, 'player']
-    );
+    const userResult = await pool.query('SELECT points, role FROM users WHERE id=$1', [userId]);
+    const agentsResult = await pool.query('SELECT COUNT(*) FROM users WHERE parent_id=$1 AND role=$2', [userId,'agent']);
+    const playersResult = await pool.query('SELECT COUNT(*) FROM users WHERE parent_id=$1 AND role=$2', [userId,'player']);
 
     res.json({
       username: req.session.user.username,
@@ -200,7 +129,6 @@ app.get('/api/dashboard', isAuthenticated, async (req, res) => {
       agentsCount: parseInt(agentsResult.rows[0].count),
       playersCount: parseInt(playersResult.rows[0].count)
     });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -211,16 +139,8 @@ app.get('/api/dashboard', isAuthenticated, async (req, res) => {
 // LOGOUT
 // ==========================
 app.get('/api/logout', async (req, res) => {
-  if (req.session.user) {
-    await pool.query(
-      'UPDATE users SET status = $1 WHERE id = $2',
-      ['offline', req.session.user.id]
-    );
-  }
-
-  req.session.destroy(() => {
-    res.redirect('/');
-  });
+  if (req.session.user) await pool.query('UPDATE users SET status=$1 WHERE id=$2', ['offline', req.session.user.id]);
+  req.session.destroy(() => res.redirect('/'));
 });
 
 // ==========================
@@ -228,23 +148,16 @@ app.get('/api/logout', async (req, res) => {
 // ==========================
 app.post('/api/create-user', isAuthenticated, async (req, res) => {
   const { username, password, role, parent_id } = req.body;
-
-  if (req.session.user.role !== 'admin') {
-    return res.status(403).json({ error: "Forbidden" });
-  }
+  if (req.session.user.role !== 'admin') return res.status(403).json({ error: "Forbidden" });
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-
     await pool.query(
-      `INSERT INTO users 
-      (username, password, role, parent_id, points, can_withdraw, status)
-      VALUES ($1, $2, $3, $4, 0, false, 'offline')`,
+      `INSERT INTO users (username,password,role,parent_id,points,can_withdraw,status)
+       VALUES ($1,$2,$3,$4,0,false,'offline')`,
       [username, hashedPassword, role, parent_id || null]
     );
-
     res.json({ message: "User created successfully" });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Error creating user" });
@@ -252,15 +165,9 @@ app.post('/api/create-user', isAuthenticated, async (req, res) => {
 });
 
 // ==========================
-// STATIC FILES (FIXED)
+// STATIC FILES
 // ==========================
-app.use(express.static('public', {
-  setHeaders: (res, path) => {
-    if (path.endsWith('.html')) {
-      res.setHeader('Cache-Control', 'no-store');
-    }
-  }
-}));
+app.use(express.static('public', { setHeaders: (res, path) => { if(path.endsWith('.html')) res.setHeader('Cache-Control','no-store'); }}));
 
 // ==========================
 // START SERVER
