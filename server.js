@@ -16,7 +16,10 @@ const allowedOrigin = 'https://letsplay-famw.onrender.com'; // your deployed sit
 // MIDDLEWARE
 // ==========================
 app.use(helmet());
-
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true
+}));
 app.use(express.json());
 
 // Prevent caching (important after logout)
