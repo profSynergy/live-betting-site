@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create User</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="login-container">
+    <h1>Create User</h1>
+
+    <input type="text" id="username" placeholder="Username"><br>
+
+    <input type="password" id="password" placeholder="Password"><br>
+
+    <input type="text" id="role" placeholder="Role (admin, master_agent, player, declarator)"><br>
+
+    <input type="number" id="parent_id" placeholder="Parent ID (optional)"><br>
+
+    <button onclick="createUser()">Create Account</button>
+</div>
+
+<script>
+async function createUser() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const role = document.getElementById('role').value;
+    const parent_id = document.getElementById('parent_id').value;
+
+    if (!username || !password || !role) {
+        alert("Please fill all required fields");
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/create-user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username,
+                password,
+                role,
+                parent_id: parent_id || null
+            })
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert("User created successfully!");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Server error");
+    }
+}
+</script>
+
+</body>
+</html>

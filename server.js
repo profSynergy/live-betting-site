@@ -164,18 +164,19 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 // BCRYPT USER CREATION (FOR TESTING PURPOSES ONLY)
 // ==========================
 app.post('/api/create-user', async (req, res) => {
-  const { username, password, role } = req.body;
+  const { username, password, role, parent_id } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await pool.query(
-      `INSERT INTO users (username, password, role)
-       VALUES ($1, $2, $3)`,
-      [username, hashedPassword, role]
+      `INSERT INTO users 
+      (username, password, role, parent_id, points, can_withdraw, status)
+      VALUES ($1, $2, $3, $4, 0, false, 'offline')`,
+      [username, hashedPassword, role, parent_id || null]
     );
 
-    res.json({ message: "User created securely" });
+    res.json({ message: "User created successfully" });
 
   } catch (err) {
     console.error(err);
