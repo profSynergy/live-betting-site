@@ -12,10 +12,10 @@ const app = express();
 const allowedOrigin = 'https://letsplay-famw.onrender.com';
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 5 * 60 * 1000, // 15 minutes
   max: 5, // allow max 5 attempts per window per IP
   message: {
-    error: "Too many login attempts, please try again after 15 minutes"
+    error: "Too many login attempts, please try again after 5 minutes"
   },
   standardHeaders: true, // return rate limit info in headers
   legacyHeaders: false,  // disable X-RateLimit-* headers
@@ -117,7 +117,7 @@ app.post('/api/login', loginLimiter, async (req, res) => {
       let lockUntil = null;
 
       if (failedAttempts >= 5) {   // lock after 5 failed attempts
-        lockUntil = new Date(Date.now() + 15 * 60 * 1000); // lock 15 minutes
+        lockUntil = new Date(Date.now() + 5 * 60 * 1000); // lock 15 minutes
         failedAttempts = 0; // reset counter after lock
       }
 
