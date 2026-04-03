@@ -1,120 +1,136 @@
-// ==========================
-// IMPORTS
-// ==========================
-const express = require('express');
-const cors = require('cors');
-const session = require('express-session');
-const pool = require('./db/connection');
-const bcrypt = require('bcrypt');
-const helmet = require('helmet');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Mapagmahal</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<style>
+    /* Snackbar styling */
+    #snackbar {
+        visibility: hidden;
+        min-width: 250px;
+        color: #fff;
+        text-align: center;
+        padding: 14px;
+        border-radius: 4px;
+        position: fixed;
+        z-index: 999;
+        left: 50%;
+        bottom: 30px;
+        transform: translateX(-50%);
+        font-size: 16px;
+        opacity: 0;
+    }
+    #snackbar.show {
+        visibility: visible;
+        opacity: 1;
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
 
-const allowedOrigin = 'https://letsplay-famw.onrender.com';
-const app = express();
+    /* Warning color for errors */
+    #snackbar.warning {
+        background-color: #e74c3c; /* red */
+    }
 
-// ==========================
-// SECURITY MIDDLEWARE
-// ==========================
-app.use(helmet());
-app.use(cors({
-  origin: allowedOrigin,
-  credentials: true
-}));
-app.use(express.json());
+    /* Success color */
+    #snackbar.success {
+        background-color: #27ae60; /* green */
+    }
 
-// Prevent caching (important after logout)
-app.use((req, res, next) => {
-  res.set('Cache-Control', 'no-store');
-  next();
-});
+    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+    @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+</style>
+</head>
+<body>
+<div id="snackbar"></div>
+<div class="login-container">
+    <img src="logo.png" alt="Mapagmahal Logo" class="logo">
+    <h1>Mapagmahal</h1>
 
-// ==========================
-// SESSION CONFIG
-// ==========================
-app.use(session({
-  secret: 'secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false,
-    httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 30
-  }
-}));
+    <div class="input-group">
+        <label for="username">Username</label>
+        <div class="input-icon">
+            <i class="fas fa-envelope"></i>
+            <input type="text" id="username" placeholder="Enter username">
+        </div>
+    </div>
 
-// ==========================
-// AUTH MIDDLEWARE
-// ==========================
-function isAuthenticated(req, res, next) {
-  if (!req.session.user) return res.status(401).json({ error: "Unauthorized" });
-  next();
-}
+    <div class="input-group">
+        <label for="password">Password</label>
+        <div class="input-icon">
+            <i class="fas fa-lock"></i>
+            <input type="password" id="password" placeholder="Enter password">
+        </div>
+    </div>
 
-// ==========================
-// ROLE AUTHORIZATION
-// ==========================
-function authorizeRoles(...roles) {
-  return (req, res, next) => {
-    if (!req.session.user) return res.redirect('/');
-    if (!roles.includes(req.session.user.role)) return res.status(403).send("Forbidden");
-    next();
-  };
-}
+    <button onclick="login()">Sign In</button>
+</div>
 
-// ==========================
-// LOGIN ROUTE
-// ==========================
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
+<script>
+    // Show snackbar notification
+    function showSnackbar(message, type = "warning") {
+        const bar = document.getElementById("snackbar");
+        bar.textContent = message;
+        bar.className = "show " + type; // add type class
+        setTimeout(() => {
+            bar.className = bar.className.replace("show " + type, "");
+        }, 3000);
+    }
 
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
-    if (result.rows.length === 0) return res.status(401).json({ error: "User not found" });
+    // Login function
+    async function login() {
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
 
-    const user = result.rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: "Wrong password" });
+        if (!username || !password) {
+            showSnackbar("Please enter both username and password", "warning");
+            return;
+        }
 
-    // Save session
-    req.session.user = { id: user.id, username: user.username, role: user.role };
+        try {
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
 
-    // Update status
-    await pool.query('UPDATE users SET status=$1 WHERE id=$2', ['online', user.id]);
+            const data = await res.json();
 
-    res.json({ message: "Login success", role: user.role });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+            if (data.error) {
+                showSnackbar(data.error, "warning");
+                return;
+            }
 
-// ==========================
-// ROLE-PROTECTED PAGES
-// ==========================
-app.get('/admin.html', authorizeRoles('admin'), (req, res) => res.sendFile(__dirname + '/public/admin.html'));
-app.get('/agent.html', authorizeRoles('master_agent','sub_agent','agent'), (req, res) => res.sendFile(__dirname + '/public/agent.html'));
-app.get('/declarator.html', authorizeRoles('declarator'), (req, res) => res.sendFile(__dirname + '/public/declarator.html'));
-app.get('/player.html', authorizeRoles('player'), (req, res) => res.sendFile(__dirname + '/public/player.html'));
+            showSnackbar("Login successful!", "success");
 
-// ==========================
-// LOGOUT
-// ==========================
-app.get('/api/logout', async (req, res) => {
-  if (req.session.user) await pool.query('UPDATE users SET status=$1 WHERE id=$2', ['offline', req.session.user.id]);
-  req.session.destroy(() => res.redirect('/'));
-});
+            // Redirect based on role after 0.5s
+            setTimeout(() => {
+                switch(data.role) {
+                    case "admin":
+                        window.location.href = "admin.html";
+                        break;
+                    case "player":
+                        window.location.href = "player.html";
+                        break;
+                    case "master_agent":
+                        showSnackbar("Master Agent panel coming next", "warning");
+                        break;
+                    case "declarator":
+                        showSnackbar("Declarator panel coming next", "warning");
+                        break;
+                    default:
+                        showSnackbar("Unknown role", "warning");
+                }
+            }, 500);
 
-// ==========================
-// STATIC FILES
-// ==========================
-app.use(express.static('public', { 
-  setHeaders: (res, path) => { 
-    if(path.endsWith('.html')) res.setHeader('Cache-Control','no-store'); 
-  }
-}));
-
-// ==========================
-// START SERVER
-// ==========================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        } catch (err) {
+            showSnackbar("Server error", "warning");
+            console.error(err);
+        }
+    }
+</script>
+</body>
+</html>
