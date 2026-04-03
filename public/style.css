@@ -224,7 +224,7 @@ button:hover {
 .card {
     display: flex;
     justify-content: space-between; /* content left, icon right */
-    align-items: center;
+    align-items: left;
     padding: 20px;
     border-radius: 12px;
     color: white;
