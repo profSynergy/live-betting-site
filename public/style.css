@@ -221,14 +221,33 @@ button:hover {
 /* =========================
    DASHBOARD CARDS
 ========================= */
+/* =========================
+   DASHBOARD CARDS STYLING
+========================= */
+
+/* GRID: 2 per row on desktop */
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* ✅ force 2 columns */
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* Mobile fallback */
+@media (max-width: 768px) {
+    .cards-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* CARD LAYOUT */
 .card {
     display: flex;
-    justify-content: space-between; /* content left, icon right */
-    align-items: left;
+    justify-content: space-between; /* ✅ push icon to right */
+    align-items: center;
     padding: 20px;
     border-radius: 12px;
     color: white;
-    position: relative;
     transition: transform 0.2s ease;
 }
 
@@ -236,97 +255,106 @@ button:hover {
     transform: translateY(-5px);
 }
 
-/* Card content on the left */
+/* LEFT CONTENT */
 .card-content {
-    flex: 1; /* fill available space */
+    text-align: left; /* ✅ LEFT ALIGN TEXT */
 }
 
-/* Card heading */
+/* RIGHT ICON */
+.card-icon {
+    margin-left: 20px;
+    opacity: 0.9;
+}
+
+/* TEXT */
 .card-content h3 {
     margin: 0 0 10px 0;
     font-size: 18px;
 }
 
-/* Amount / numbers */
 .card-content .amount {
     font-size: 24px;
     font-weight: bold;
 }
 
-/* Rate box inside Commission card */
-.rate-box {
+/* =========================
+   BADGES (Agents & Players)
+========================= */
+.badge {
     display: inline-block;
-    margin-top: 5px;
-    padding: 3px 8px;
-    background: #28a745; /* green */
+    margin-top: 8px;
+    padding: 4px 10px;
     border-radius: 6px;
     font-size: 12px;
     font-weight: bold;
 }
 
+.badge.blue {
+    background: #3498db;
+}
+
+.badge.red {
+    background: #e74c3c;
+}
+
 /* =========================
-   CARD ICON (right aligned)
+   COMMISSION FIX
 ========================= */
-.card-icon {
-    flex-shrink: 0;  /* prevent shrinking */
-    margin-left: 20px; /* spacing from content */
+.rate-row {
     display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.rate-box {
+    padding: 4px 8px;
+    background: #2ecc71;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.rate-label {
+    font-size: 13px;
+}
+
+/* =========================
+   MEMBERSHIP CARD FIX
+========================= */
+.membership-card {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
-/* Individual card colors */
-.wallet-card { background: #e74c3c; }        /* red */
-.commission-card { background: #3498db; }    /* blue */
-.agents-card { background: #2ecc71; }        /* green */
-.players-card { background: #f1c40f; }       /* yellow */
-
-/* Optional: icon colors for contrast (white) */
-.wallet-card .card-icon svg,
-.commission-card .card-icon svg,
-.agents-card .card-icon svg,
-.players-card .card-icon svg {
-    fill: white;
-}
-
-/* =========================
-   MEMBERSHIP LINK CARD (inline input + button)
-========================= */
-.membership-card .card-content {
-    flex: 1;
-}
-
-.membership-card .link-wrapper {
+.link-wrapper {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     margin-top: 10px;
 }
 
-.membership-card input {
+.link-wrapper input {
     flex: 1;
     padding: 8px;
     border-radius: 6px;
-    border: 1px solid #555;
-    background: #2b2b2b;
-    color: white;
-}
-
-.membership-card button {
-    padding: 8px 12px;
     border: none;
-    border-radius: 6px;
-    background: #3498db; /* blue button */
-    color: white;
-    cursor: pointer;
 }
 
-.membership-card button:hover {
-    background: #2980b9;
+/* FIX BIG BUTTON */
+.link-wrapper button {
+    width: auto;        /* ✅ FIX */
+    padding: 8px 12px;
+    white-space: nowrap;
 }
 
-/* Hover effect for membership card */
-.membership-card:hover {
-    transform: translateY(-3px);
-}
+/* =========================
+   COLORS
+========================= */
+.wallet-card { background: #e74c3c; }
+.commission-card { background: #3498db; }
+.agents-card { background: #2ecc71; }
+.players-card { background: #f1c40f; color: #2b2b2b; }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
