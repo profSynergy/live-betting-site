@@ -209,18 +209,62 @@ button:hover {
 }
 
 /* Cards */
-.card {
-    background: #1e293b;
-    border: 1px solid #14b8a6;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
+/* =========================
+   DASHBOARD CARDS STYLING
+========================= */
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
 }
 
-.card h3 {
-    margin-top: 0;
-    color: #14b8a6;
+.card {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    border-radius: 12px;
+    color: white;
+    position: relative;
+    transition: transform 0.2s ease;
 }
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-icon {
+    margin-right: 15px;
+}
+
+.card-content h3 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+}
+
+/* Amount / numbers */
+.card-content .amount {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+/* Rate box inside Commission card */
+.rate-box {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 3px 8px;
+    background: #28a745; /* green */
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+/* Individual card colors */
+.wallet-card { background: #e74c3c; }        /* red */
+.commission-card { background: #3498db; }    /* blue */
+.agents-card { background: #2ecc71; }        /* green */
+.players-card { background: #f1c40f; }       /* yellow */
+
 
 /* Footer */
 footer {
