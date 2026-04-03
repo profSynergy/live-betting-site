@@ -89,7 +89,6 @@ function authorizeRoles(...roles) {
 // LOGIN ROUTE (FIXED)
 // ==========================
 app.post('/api/login', loginLimiter, async (req, res) => {
-  
   const { username, password } = req.body;
 
   try {
@@ -104,30 +103,45 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 
     const user = result.rows[0];
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ error: "Wrong password" });
+    // Check if account is locked
+    if (user.lock_until && new Date() < user.lock_until) {
+      const minutesLeft = Math.ceil((new Date(user.lock_until) - new Date()) / 60000);
+      return res.status(403).json({ error: `Account locked. Try again in ${minutesLeft} minute(s).` });
     }
 
-    // ✅ Save session properly
-    req.session.user = {
-      id: user.id,
-      username: user.username,
-      role: user.role
-    };
+    const match = await bcrypt.compare(password, user.password);
 
-    // ✅ IMPORTANT: ensure session is saved before response
+    if (!match) {
+      // Increment failed login attempts
+      let failedAttempts = user.failed_logins + 1;
+      let lockUntil = null;
+
+      if (failedAttempts >= 5) {   // lock after 5 failed attempts
+        lockUntil = new Date(Date.now() + 15 * 60 * 1000); // lock 15 minutes
+        failedAttempts = 0; // reset counter after lock
+      }
+
+      await pool.query(
+        'UPDATE users SET failed_logins = $1, lock_until = $2 WHERE id = $3',
+        [failedAttempts, lockUntil, user.id]
+      );
+
+      return res.status(401).json({ error: lockUntil ? "Account temporarily locked due to repeated failed attempts." : "Wrong password" });
+    }
+
+    // ✅ Reset failed login count on success
+    await pool.query(
+      'UPDATE users SET failed_logins = 0, lock_until = NULL, status = $1 WHERE id = $2',
+      ['online', user.id]
+    );
+
+    // ✅ Existing session save logic
+    req.session.user = { id: user.id, username: user.username, role: user.role };
     req.session.save(async (err) => {
       if (err) {
         console.error(err);
         return res.status(500).json({ error: "Session error" });
       }
-
-      // Update user status
-      await pool.query(
-        'UPDATE users SET status = $1 WHERE id = $2',
-        ['online', user.id]
-      );
 
       res.json({
         message: "Login success",
