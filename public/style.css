@@ -208,9 +208,8 @@ button:hover {
     padding: 20px;
 }
 
-/* Cards */
 /* =========================
-   DASHBOARD CARDS STYLING
+   DASHBOARD CARDS CONTAINER
 ========================= */
 .cards-container {
     display: grid;
@@ -219,8 +218,12 @@ button:hover {
     margin-top: 20px;
 }
 
+/* =========================
+   DASHBOARD CARDS
+========================= */
 .card {
     display: flex;
+    justify-content: space-between; /* content left, icon right */
     align-items: center;
     padding: 20px;
     border-radius: 12px;
@@ -233,10 +236,12 @@ button:hover {
     transform: translateY(-5px);
 }
 
-.card-icon {
-    margin-right: 15px;
+/* Card content on the left */
+.card-content {
+    flex: 1; /* fill available space */
 }
 
+/* Card heading */
 .card-content h3 {
     margin: 0 0 10px 0;
     font-size: 18px;
@@ -259,12 +264,84 @@ button:hover {
     font-weight: bold;
 }
 
+/* =========================
+   CARD ICON (right aligned)
+========================= */
+.card-icon {
+    flex-shrink: 0;  /* prevent shrinking */
+    margin-left: 20px; /* spacing from content */
+    display: flex;
+    align-items: center;
+}
+
 /* Individual card colors */
 .wallet-card { background: #e74c3c; }        /* red */
 .commission-card { background: #3498db; }    /* blue */
 .agents-card { background: #2ecc71; }        /* green */
 .players-card { background: #f1c40f; }       /* yellow */
 
+/* Optional: icon colors for contrast (white) */
+.wallet-card .card-icon svg,
+.commission-card .card-icon svg,
+.agents-card .card-icon svg,
+.players-card .card-icon svg {
+    fill: white;
+}
+
+/* =========================
+   MEMBERSHIP LINK CARD (inline input + button)
+========================= */
+.membership-card .card-content {
+    flex: 1;
+}
+
+.membership-card .link-wrapper {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.membership-card input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    background: #2b2b2b;
+    color: white;
+}
+
+.membership-card button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #3498db; /* blue button */
+    color: white;
+    cursor: pointer;
+}
+
+.membership-card button:hover {
+    background: #2980b9;
+}
+
+/* Hover effect for membership card */
+.membership-card:hover {
+    transform: translateY(-3px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .cards-container {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+
+    .card-content .amount {
+        font-size: 20px;
+    }
+
+    .card-content h3 {
+        font-size: 16px;
+    }
+}
 
 /* Footer */
 footer {
