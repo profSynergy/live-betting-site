@@ -95,17 +95,23 @@
         // =========================
         async function checkSession() {
             try {
-                const res = await fetch('/api/dashboard');
+                const res = await fetch('/api/dashboard', {
+                    credentials: 'include'
+                });
+
                 if (res.status === 401) {
-                    window.location.href = '/'; // redirect to login if not logged in
+                    window.location.href = '/';
                     return;
                 }
+
                 const data = await res.json();
-                // Update username in sidebar and header
-                document.querySelectorAll('.username').forEach(el => el.textContent = data.username);
+
+                document.querySelectorAll('.username')
+                    .forEach(el => el.textContent = data.username);
+
             } catch (err) {
                 console.error(err);
-                //window.location.href = '/';
+                window.location.href = '/';
             }
         }
         checkSession();

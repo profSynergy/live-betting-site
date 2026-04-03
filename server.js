@@ -181,3 +181,26 @@ app.use(express.static('public', {
 // ==========================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// ==========================
+// DASHBOARD API (FIXED)
+// ==========================
+app.get('/api/dashboard', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+
+    const result = await pool.query(
+      'SELECT username, role FROM users WHERE id=$1',
+      [userId]
+    );
+
+    res.json({
+      username: result.rows[0].username,
+      role: result.rows[0].role
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
