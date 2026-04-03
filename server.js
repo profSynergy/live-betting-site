@@ -4,34 +4,51 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const pool = require('./db/connection'); // PostgreSQL pool
+const pool = require('./db/connection');
 const bcrypt = require('bcrypt');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const app = express();
 
 // ==========================
-// MIDDLEWARE
+// SECURITY MIDDLEWARE
 // ==========================
+app.use(helmet()); // secure headers
 app.use(cors());
 app.use(express.json());
-app.use(session({
-  secret: 'secret-key', // Change this in production
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false,        // true when using HTTPS
-    httpOnly: true,       // prevents JS access
-    sameSite: 'lax'       // prevents CSRF
-  } // Set true only if HTTPS
-}));
 
+// Prevent caching (important for logout security)
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
 
 // ==========================
-// AUTHENTICATION MIDDLEWARE
+// SESSION CONFIG
+// ==========================
+app.use(session({
+  secret: 'secret-key', // change in production
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false, // true if HTTPS
+    httpOnly: true,
+    sameSite: 'lax'
+  }
+}));
+
+// ==========================
+// RATE LIMITER (ANTI-BRUTE FORCE)
+// ==========================
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts
+  message: { error: "Too many login attempts. Try again later." }
+});
+
+// ==========================
+// AUTH MIDDLEWARE
 // ==========================
 function isAuthenticated(req, res, next) {
   if (!req.session.user) {
@@ -41,7 +58,7 @@ function isAuthenticated(req, res, next) {
 }
 
 // ==========================
-// ROLE-BASED AUTHORIZATION
+// ROLE-BASED AUTH
 // ==========================
 function authorizeRoles(...roles) {
   return (req, res, next) => {
@@ -65,9 +82,9 @@ app.get('/api/test', (req, res) => {
 });
 
 // ==========================
-// LOGIN ROUTE
+// LOGIN ROUTE (PROTECTED)
 // ==========================
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
 
   try {
@@ -82,20 +99,19 @@ app.post('/api/login', async (req, res) => {
 
     const user = result.rows[0];
 
-    // For now plain text password check, replace with bcrypt if hashed
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ error: "Wrong password" });
     }
 
-    // ✅ Save session
+    // Save session
     req.session.user = {
       id: user.id,
       username: user.username,
       role: user.role
     };
 
-    // ✅ Update DB status to online
+    // Update status
     await pool.query(
       'UPDATE users SET status = $1 WHERE id = $2',
       ['online', user.id]
@@ -113,48 +129,36 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ==========================
-// PROTECTED DASHBOARD ROUTE
+// ROLE-PROTECTED PAGES
 // ==========================
-
 app.get('/admin.html', authorizeRoles('admin'), (req, res) => {
   res.sendFile(__dirname + '/public/admin.html');
 });
 
-// ==========================
-// DECLARATOR PAGE
-// ==========================
 app.get('/declarator.html', authorizeRoles('declarator'), (req, res) => {
   res.sendFile(__dirname + '/public/declarator.html');
 });
 
-// ==========================
-// AGENT PAGE
-// ==========================
 app.get('/agent.html', authorizeRoles('master_agent', 'sub_agent', 'agent'), (req, res) => {
   res.sendFile(__dirname + '/public/agent.html');
 });
 
-// ==========================
-// PLAYER PAGE
-// ==========================
 app.get('/player.html', authorizeRoles('player'), (req, res) => {
   res.sendFile(__dirname + '/public/player.html');
 });
 
 // ==========================
-// DASHBOARD DATA API
+// DASHBOARD API
 // ==========================
 app.get('/api/dashboard', isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.id;
 
-    // Example: fetch wallet, commission, agents, players
     const userResult = await pool.query(
       'SELECT points, role FROM users WHERE id = $1',
       [userId]
     );
 
-    // You can extend this with JOINs for agents/players
     const agentsResult = await pool.query(
       'SELECT COUNT(*) FROM users WHERE parent_id = $1 AND role = $2',
       [userId, 'agent']
@@ -180,7 +184,7 @@ app.get('/api/dashboard', isAuthenticated, async (req, res) => {
 });
 
 // ==========================
-// LOGOUT ROUTE
+// LOGOUT
 // ==========================
 app.get('/api/logout', async (req, res) => {
   if (req.session.user) {
@@ -196,24 +200,11 @@ app.get('/api/logout', async (req, res) => {
 });
 
 // ==========================
-// SERVE STATIC FILES
+// CREATE USER (ADMIN ONLY)
 // ==========================
-app.use(express.static('public'));
-
-// ==========================
-// START SERVER
-// ==========================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// ==========================
-// BCRYPT USER CREATION (FOR TESTING PURPOSES ONLY)
-// ==========================
-
 app.post('/api/create-user', isAuthenticated, async (req, res) => {
   const { username, password, role, parent_id } = req.body;
 
-  // ✅ Only ADMIN can create users
   if (req.session.user.role !== 'admin') {
     return res.status(403).json({ error: "Forbidden" });
   }
@@ -235,3 +226,14 @@ app.post('/api/create-user', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Error creating user" });
   }
 });
+
+// ==========================
+// STATIC FILES
+// ==========================
+app.use(express.static('public'));
+
+// ==========================
+// START SERVER
+// ==========================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
