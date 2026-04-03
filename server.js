@@ -4,15 +4,16 @@
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const pool = require('./db/connection');
+const PgSession = require('connect-pg-simple')(session);
+const pool = require('./db/connection'); // your PostgreSQL pool
 const bcrypt = require('bcrypt');
 const helmet = require('helmet');
 
-const allowedOrigin = 'https://letsplay-famw.onrender.com';
 const app = express();
+const allowedOrigin = 'https://letsplay-famw.onrender.com'; // your deployed site
 
 // ==========================
-// SECURITY MIDDLEWARE
+// MIDDLEWARE
 // ==========================
 app.use(helmet());
 app.use(cors({
@@ -28,17 +29,21 @@ app.use((req, res, next) => {
 });
 
 // ==========================
-// SESSION CONFIG
+// SESSION CONFIG (PostgreSQL store)
 // ==========================
 app.use(session({
-  secret: 'secret-key',
+  store: new PgSession({
+    pool: pool,                // Use your existing PostgreSQL pool
+    tableName: 'user_sessions' // default table name
+  }),
+  secret: 'super-secret-key',   // change in production
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
+    secure: true,               // HTTPS only
     httpOnly: true,
-    sameSite: 'lax',
-    maxAge: 1000 * 60 * 30
+    sameSite: 'none',
+    maxAge: 1000 * 60 * 30      // 30 minutes
   }
 }));
 
@@ -78,7 +83,7 @@ app.post('/api/login', async (req, res) => {
     // Save session
     req.session.user = { id: user.id, username: user.username, role: user.role };
 
-    // Update status
+    // Update user status
     await pool.query('UPDATE users SET status=$1 WHERE id=$2', ['online', user.id]);
 
     res.json({ message: "Login success", role: user.role });
