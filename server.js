@@ -217,7 +217,7 @@ app.get('/api/dashboard', isAuthenticated, async (req, res) => {
     const userId = req.session.user.id;
 
     const result = await pool.query(
-      'SELECT username, role FROM users WHERE id=$1',
+      'SELECT id, username, role FROM users WHERE id=$1',
       [userId]
     );
 
