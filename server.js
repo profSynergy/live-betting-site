@@ -160,21 +160,50 @@ app.post('/api/login', loginLimiter, async (req, res) => {
 // ==========================
 // ROLE-PROTECTED PAGES
 // ==========================
-app.get('/admin.html', authorizeRoles('admin'), (req, res) =>
+app.get('/admin.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
   res.sendFile(__dirname + '/public/admin.html')
 );
-
-app.get('/agent.html', authorizeRoles('master_agent', 'sub_agent', 'agent'), (req, res) =>
-  res.sendFile(__dirname + '/public/agent.html')
-);
-
 app.get('/declarator.html', authorizeRoles('declarator'), (req, res) =>
   res.sendFile(__dirname + '/public/declarator.html')
 );
-
 app.get('/player.html', authorizeRoles('player'), (req, res) =>
   res.sendFile(__dirname + '/public/player.html')
 );
+app.get('/summary.html', authorizeRoles('admin'), (req, res) =>
+  res.sendFile(__dirname + '/public/summary.html')
+);
+app.get('/wallet-logs.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
+  res.sendFile(__dirname + '/public/wallet-logs.html')
+);
+app.get('/commission-logs.html', authorizeRoles('admin'), (req, res) =>
+  res.sendFile(__dirname + '/public/commission-logs.html')
+);
+app.get('/withdrawal.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
+  res.sendFile(__dirname + '/public/withdrawal.html')
+);
+app.get('/archives.html', authorizeRoles('admin'), (req, res) =>
+  res.sendFile(__dirname + '/public/archives.html')
+);
+app.get('/agents.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
+  res.sendFile(__dirname + '/public/agent.html')
+);
+app.get('/players.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
+  res.sendFile(__dirname + '/public/players.html')
+);
+app.get('/pending.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
+  res.sendFile(__dirname + '/public/pending.html')
+);
+app.get('/account.html', authorizeRoles('admin'), (req, res) =>
+  res.sendFile(__dirname + '/public/account.html')
+);
+app.get('/change-password.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent','declarator','player'), (req, res) =>
+  res.sendFile(__dirname + '/public/change-password.html')
+);
+
+
+
+
+
 
 // ==========================
 // LOGOUT
@@ -296,3 +325,4 @@ app.get('/api/pending-count', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
