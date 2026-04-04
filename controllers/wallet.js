@@ -55,7 +55,7 @@ async function getDashboardWallets(userId) {
     try {
         // 1. Current user balance
         const userRes = await client.query('SELECT points FROM users WHERE id=$1', [userId]);
-        const userBalance = userRes.rows.length ? userRes.rows[0].points : 0;
+        const userBalance = userRes.rows.length ? Number(userRes.rows[0].points) : 0;
 
         // 2. Agents under this account
         const agentsRes = await client.query(`
@@ -64,7 +64,7 @@ async function getDashboardWallets(userId) {
         `, [userId]);
 
         const agentsCount = agentsRes.rows.length;
-        const agentsPoints = agentsRes.rows.reduce((sum, r) => sum + r.points, 0);
+        const agentsPoints = agentsRes.rows.reduce((sum, r) => sum + Number(r.points), 0);
 
         // 3. Players under this account
         const playersRes = await client.query(`
@@ -73,7 +73,7 @@ async function getDashboardWallets(userId) {
         `, [userId]);
 
         const playersCount = playersRes.rows.length;
-        const playersPoints = playersRes.rows.reduce((sum, r) => sum + r.points, 0);
+        const playersPoints = playersRes.rows.reduce((sum, r) => sum + Number(r.points), 0);
 
         return {
             userBalance,
