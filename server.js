@@ -31,7 +31,7 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use(express.static('public'));
+
 // Prevent caching (important after logout)
 app.use((req, res, next) => {
   res.set('Cache-Control', 'no-store');
@@ -185,7 +185,7 @@ app.get('/archives.html', authorizeRoles('admin'), (req, res) =>
   res.sendFile(__dirname + '/public/archives.html')
 );
 app.get('/agents.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
-  res.sendFile(__dirname + '/public/agent.html')
+  res.sendFile(__dirname + '/public/agents.html')
 );
 app.get('/players.html', authorizeRoles('admin','master_agent', 'sub_agent', 'agent'), (req, res) =>
   res.sendFile(__dirname + '/public/players.html')
