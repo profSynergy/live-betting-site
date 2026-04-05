@@ -41,46 +41,46 @@
         <div class="header">
             <div class="hamburger" onclick="toggleSidebar()">☰</div>
         </div>
+        <div class="content">
+            <h2>Agents Management</h2>
 
-        <h2>Agents Management</h2>
+            <select id="roleFilter" onchange="loadAgents()" class="membership-link">
+                <option value="">All Roles</option>
+                <option value="master_agent">Incorporator</option>
+                <option value="sub_agent">Master Agent</option>
+                <option value="agent">Gold Agent</option>
+            </select>
 
-        <select id="roleFilter" onchange="loadAgents()" class="membership-link">
-            <option value="">All Roles</option>
-            <option value="master_agent">Incorporator</option>
-            <option value="sub_agent">Master Agent</option>
-            <option value="agent">Gold Agent</option>
-        </select>
-
-        <select id="statusFilter" onchange="loadAgents()" class="membership-link">
-            <option value="">All Status</option>
-            <option value="online">Active</option>
-            <option value="offline">Offline</option>
-            <option value="suspended">Suspended</option>
-        </select>
-        <div id="pointsModal" class="modal">
-            <div class="modal-content">
-                <h3>Add Points</h3>
-                <input type="number" id="pointsInput" placeholder="Enter amount">
-                <button onclick="confirmAddPoints()">Confirm</button>
-                <button onclick="closeModal()">Cancel</button>
+            <select id="statusFilter" onchange="loadAgents()" class="membership-link">
+                <option value="">All Status</option>
+                <option value="online">Active</option>
+                <option value="offline">Offline</option>
+                <option value="suspended">Suspended</option>
+            </select>
+            <div id="pointsModal" class="modal">
+                <div class="modal-content">
+                    <h3>Add Points</h3>
+                    <input type="number" id="pointsInput" placeholder="Enter amount">
+                    <button onclick="confirmAddPoints()">Confirm</button>
+                    <button onclick="closeModal()">Cancel</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Points</th>
+                            <th>Parent</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agentsTable"></tbody>
+                </table>
             </div>
         </div>
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Points</th>
-                        <th>Parent</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="agentsTable"></tbody>
-            </table>
-        </div>
-
         <footer>
             © 2024 Pitwarriors619. All rights reserved.
         </footer>
