@@ -499,6 +499,7 @@ app.get('/api/players', isAuthenticated, async (req, res) => {
       FROM users u
       LEFT JOIN users p ON u.parent_id = p.id
       WHERE u.role = 'player'
+      AND u.status NOT IN ('pending', 'rejected')
       AND (u.parent_id = $1 OR p.parent_id = $1 OR p.id = $1)
       ORDER BY u.created_at DESC
     `, [userId]);

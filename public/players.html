@@ -48,26 +48,41 @@
             <div class="membership-card">
 
                 <!-- FILTER -->
-                <select id="statusFilter" onchange="loadPlayers()">
-                    <option value="">All</option>
-                    <option value="online">Active</option>
-                    <option value="suspended">Suspended</option>
-                    <option value="pending">Pending</option>
-                </select>
+                <div class="filter-bar">
+                    <select id="statusFilter" class="styled-select" onchange="loadPlayers()">
+                        <option value="">All Status</option>
+                        <option value="online">🟢 Active</option>
+                        <option value="offline">⚪ Offline</option>
+                        <option value="suspended">🔴 Suspended</option>
+                    </select>
+                </div>
 
-                <table class="pending-table">
-                    <thead>
-                        <tr>
-                            <th>Username</th>
-                            <th>Points</th>
-                            <th>Agent</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="playersTable"></tbody>
-                </table>
+                <!-- TABLE -->
+                <div class="table-wrapper">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Points</th>
+                                <th>Agent</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="playersTable"></tbody>
+                    </table>
+                </div>
 
+            </div>
+
+            <!-- MODAL -->
+            <div id="pointsModal" class="modal">
+                <div class="modal-content">
+                    <h3>Add Points</h3>
+                    <input type="number" id="pointsInput" placeholder="Enter points">
+                    <button onclick="confirmAddPoints()">✅ Confirm</button>
+                    <button onclick="closeModal()">❌ Cancel</button>
+                </div>
             </div>
 
             <div id="snackbar"></div>
@@ -179,16 +194,19 @@
         // =========================
         // Loading players
         // =========================
+        let selectedUserId = null;
+        let currentUserId = null;
+
         async function loadPlayers() {
-            const filter = document.getElementById('statusFilter').value;
-
             try {
-                const res = await fetch('/api/players', {
-                    credentials: 'include'
-                });
+                const session = await fetch('/api/dashboard', { credentials: 'include' });
+                const user = await session.json();
+                currentUserId = user.id;
 
+                const res = await fetch('/api/players', { credentials: 'include' });
                 let players = await res.json();
 
+                const filter = document.getElementById('statusFilter').value;
                 if (filter) {
                     players = players.filter(p => p.status === filter);
                 }
@@ -197,19 +215,32 @@
                 table.innerHTML = '';
 
                 players.forEach(p => {
+
+                    const isDirect = p.parent_id === currentUserId;
+
                     const row = document.createElement('tr');
 
                     row.innerHTML = `
                         <td>${p.username}</td>
                         <td>${p.points}</td>
                         <td>${p.parent_username || '-'}</td>
-                        <td>${p.status}</td>
-                        <td>
-                            <button onclick="addPoints(${p.id})">+Points</button>
-                            <button onclick="toggleStatus(${p.id}, '${p.status}')">
-                                ${p.status === 'suspended' ? 'Activate' : 'Suspend'}
+                        <td class="status ${p.status}">${p.status}</td>
+                        <td class="actions">
+
+                            <button class="btn add ${!isDirect ? 'disabled' : ''}" 
+                                onclick="${isDirect ? `openModal(${p.id})` : ''}">
+                                ➕
                             </button>
-                            <button onclick="resetPassword(${p.id})">Reset</button>
+
+                            <button class="btn ${p.status === 'suspended' ? 'activate' : 'suspend'}"
+                                onclick="toggleStatus(${p.id}, '${p.status}')">
+                                ${p.status === 'suspended' ? '✅' : '⛔'}
+                            </button>
+
+                            <button class="btn reset" onclick="resetPassword(${p.id})">
+                                🔑
+                            </button>
+
                         </td>
                     `;
 
@@ -220,24 +251,7 @@
                 console.error(err);
             }
         }
-        // =========================
-        // Loading players on page load
-        // =========================
-        async function addPoints(userId) {
-            const amount = prompt("Enter points:");
-
-            if (!amount) return;
-
-            await fetch('/api/add-points', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ userId, amount: Number(amount) })
-            });
-
-            showSnackbar("Points added");
-            loadPlayers();
-        }
+        
         // =========================
         // Toggle status
         // =========================
@@ -270,6 +284,40 @@
             const data = await res.json();
 
             showSnackbar(data.message);
+        }
+        // =========================
+        // Loading points modal
+        // =========================
+        function openModal(userId) {
+            selectedUserId = userId;
+            document.getElementById('pointsModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('pointsModal').style.display = 'none';
+        }
+
+        async function confirmAddPoints() {
+            const amount = document.getElementById('pointsInput').value;
+
+            if (!amount || amount <= 0) {
+                showSnackbar("Invalid amount");
+                return;
+            }
+
+            await fetch('/api/add-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    userId: selectedUserId,
+                    amount: Number(amount)
+                })
+            });
+
+            showSnackbar("Points added successfully", true);
+            closeModal();
+            loadPlayers();
         }
         checkSession();
     </script>
