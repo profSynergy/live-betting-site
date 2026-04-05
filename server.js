@@ -486,3 +486,96 @@ app.post('/api/reject-user', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// ==========================
+// PLAYERS LIST API
+// ==========================
+app.get('/api/players', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.session.user.id;
+
+    const result = await pool.query(`
+      SELECT u.id, u.username, u.points, u.status, u.role,
+             p.username AS parent_username
+      FROM users u
+      LEFT JOIN users p ON u.parent_id = p.id
+      WHERE u.role = 'player'
+      AND (u.parent_id = $1 OR p.parent_id = $1 OR p.id = $1)
+      ORDER BY u.created_at DESC
+    `, [userId]);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+// ==========================
+// ADD POINTS API (ADMIN ONLY)
+// ==========================
+app.post('/api/add-points', isAuthenticated, async (req, res) => {
+  const { userId, amount } = req.body;
+
+  try {
+    if (amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
+    }
+
+    await addTransaction({
+      user_id: userId,
+      type: 'credit',
+      amount,
+      description: 'Admin added points'
+    });
+
+    res.json({ message: "Points added" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+// ==========================
+// UPDATE STATUS API (ADMIN ONLY)
+// ==========================
+app.post('/api/update-status', isAuthenticated, async (req, res) => {
+  const { userId, status } = req.body;
+
+  try {
+    await pool.query(`
+      UPDATE users SET status = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [status, userId]);
+
+    res.json({ message: "Status updated" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+// ==========================
+// RESET PASSWORD API (ADMIN ONLY)
+// ==========================
+app.post('/api/reset-password', isAuthenticated, async (req, res) => {
+  const { userId } = req.body;
+
+  if (req.session.user.role !== 'admin') {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const hashed = await bcrypt.hash('123456', 10);
+
+    await pool.query(`
+      UPDATE users SET password = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [hashed, userId]);
+
+    res.json({ message: "Password reset to 123456" });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});

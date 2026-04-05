@@ -476,3 +476,11 @@ button:active {
     margin-right: 5px;
     width: auto;
 }
+
+@media (max-width: 768px) {
+    .pending-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}

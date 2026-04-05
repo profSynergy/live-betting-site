@@ -43,8 +43,34 @@
         </div>
 
         <div class="content">
-            <h2>Players List</h2>
-            <p>Coming soon...</p>
+            <h2>Players</h2>
+
+            <div class="membership-card">
+
+                <!-- FILTER -->
+                <select id="statusFilter" onchange="loadPlayers()">
+                    <option value="">All</option>
+                    <option value="online">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="pending">Pending</option>
+                </select>
+
+                <table class="pending-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Points</th>
+                            <th>Agent</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playersTable"></tbody>
+                </table>
+
+            </div>
+
+            <div id="snackbar"></div>
         </div>
 
         <footer>
@@ -74,13 +100,177 @@
                 console.error(err);
                 window.location.href = '/';
             }
+            loadPendingCount();
+            setInterval(loadPendingCount, 10000);
         }
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('collapsed');
         }
+        // =========================
+        // Hamburger & overlay
+        // =========================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
 
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active'); // show overlay
+            } else {
+                sidebar.classList.toggle('collapsed');
+            }
+        }
+
+        // =========================
+        // Load pending approvals count
+        // =========================
+        async function loadPendingCount() {
+            try {
+                const res = await fetch('/api/pending-count', {
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+
+                const badge = document.getElementById('pendingBadge');
+
+                if (data.count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = data.count;
+                } else {
+                    badge.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        // Close sidebar if click outside (mobile)
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(event.target) && !event.target.classList.contains('hamburger')) {
+                    closeSidebar();
+                }
+            }
+        });
+        
+        function showSnackbar(message, success = false) {
+            const snackbar = document.getElementById("snackbar");
+            snackbar.textContent = message;
+            snackbar.className = success ? "show success" : "show";
+
+            setTimeout(() => {
+                snackbar.className = snackbar.className.replace("show", "");
+            }, 3000);
+        }
+
+        // =========================
+        // Loading players
+        // =========================
+        async function loadPlayers() {
+            const filter = document.getElementById('statusFilter').value;
+
+            try {
+                const res = await fetch('/api/players', {
+                    credentials: 'include'
+                });
+
+                let players = await res.json();
+
+                if (filter) {
+                    players = players.filter(p => p.status === filter);
+                }
+
+                const table = document.getElementById('playersTable');
+                table.innerHTML = '';
+
+                players.forEach(p => {
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td>${p.username}</td>
+                        <td>${p.points}</td>
+                        <td>${p.parent_username || '-'}</td>
+                        <td>${p.status}</td>
+                        <td>
+                            <button onclick="addPoints(${p.id})">+Points</button>
+                            <button onclick="toggleStatus(${p.id}, '${p.status}')">
+                                ${p.status === 'suspended' ? 'Activate' : 'Suspend'}
+                            </button>
+                            <button onclick="resetPassword(${p.id})">Reset</button>
+                        </td>
+                    `;
+
+                    table.appendChild(row);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        // =========================
+        // Loading players on page load
+        // =========================
+        async function addPoints(userId) {
+            const amount = prompt("Enter points:");
+
+            if (!amount) return;
+
+            await fetch('/api/add-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId, amount: Number(amount) })
+            });
+
+            showSnackbar("Points added");
+            loadPlayers();
+        }
+        // =========================
+        // Toggle status
+        // =========================
+        async function toggleStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'suspended' ? 'offline' : 'suspended';
+
+            await fetch('/api/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId, status: newStatus })
+            });
+
+            showSnackbar("Status updated");
+            loadPlayers();
+        }
+        // =========================
+        // Reset password
+        // =========================
+        async function resetPassword(userId) {
+            if (!confirm("Reset password to 123456?")) return;
+
+            const res = await fetch('/api/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await res.json();
+
+            showSnackbar(data.message);
+        }
         checkSession();
     </script>
 
