@@ -45,19 +45,21 @@
             <h2>Agents Management</h2>
             <div class="membership-card">
                 <!-- FILTER -->
-                <select id="roleFilter" onchange="loadAgents()" class="membership-link">
-                    <option value="">All Roles</option>
-                    <option value="master_agent">Incorporator</option>
-                    <option value="sub_agent">Master Agent</option>
-                    <option value="agent">Gold Agent</option>
-                </select>
+                <div class="filter-bar">
+                    <select id="roleFilter" onchange="loadAgents()" class="membership-link">
+                        <option value="">All Roles</option>
+                        <option value="master_agent">Incorporator</option>
+                        <option value="sub_agent">Master Agent</option>
+                        <option value="agent">Gold Agent</option>
+                    </select>
 
-                <select id="statusFilter" onchange="loadAgents()" class="membership-link">
-                    <option value="">All Status</option>
-                    <option value="online">Active</option>
-                    <option value="offline">Offline</option>
-                    <option value="suspended">Suspended</option>
-                </select>
+                    <select id="statusFilter" onchange="loadAgents()" class="membership-link">
+                        <option value="">All Status</option>
+                        <option value="online">Active</option>
+                        <option value="offline">Offline</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
                 <!-- TABLE -->
                 <div class="table-wrapper">
                     <table class="styled-table">
