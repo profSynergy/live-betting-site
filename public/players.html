@@ -305,7 +305,7 @@
                 return;
             }
 
-            await fetch('/api/add-points', {
+            const res = await fetch('/api/add-points', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -315,7 +315,17 @@
                 })
             });
 
-            showSnackbar("Points added successfully", true);
+            const data = await res.json();
+
+            // ✅ HANDLE ERROR FROM SERVER
+            if (!res.ok) {
+                showSnackbar(data.error);
+                return;
+            }
+
+            // ✅ SUCCESS
+            showSnackbar(data.message, true);
+
             closeModal();
             loadPlayers();
         }

@@ -517,42 +517,105 @@ app.get('/api/players', isAuthenticated, async (req, res) => {
 app.post('/api/add-points', isAuthenticated, async (req, res) => {
   const { userId, amount } = req.body;
   const currentUserId = req.session.user.id;
-
+  try{
+    // prevent self-transfer
+    if (Number(userId) === Number(currentUserId)) {
+      return res.status(400).json({ error: "Invalid action" });
+    }
+  }
+  catch(err){
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
   try {
-    if (amount <= 0) {
+    const pointsToTransfer = Number(amount);
+
+    if (!pointsToTransfer || pointsToTransfer <= 0) {
       return res.status(400).json({ error: "Invalid amount" });
     }
 
-    // 🔍 GET TARGET USER
-    const result = await pool.query(
-      'SELECT parent_id FROM users WHERE id = $1',
+    // 🔍 Get player
+    const playerRes = await pool.query(
+      'SELECT parent_id, points FROM users WHERE id = $1',
       [userId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+    if (playerRes.rows.length === 0) {
+      return res.status(404).json({ error: "Player not found" });
     }
 
-    const player = result.rows[0];
+    const player = playerRes.rows[0];
 
-    // 🔐 SERVER-SIDE PROTECTION (PUT IT HERE)
+    // 🔐 Only direct parent
     if (Number(player.parent_id) !== Number(currentUserId)) {
       return res.status(403).json({ error: "Not allowed" });
     }
 
-    // ✅ ADD POINTS
-    await addTransaction({
-      user_id: userId,
-      type: 'credit',
-      amount,
-      description: 'Agent added points'
-    });
+    // 🔍 Get current user (agent)
+    const agentRes = await pool.query(
+      'SELECT points FROM users WHERE id = $1',
+      [currentUserId]
+    );
 
-    res.json({ message: "Points added successfully" });
+    const agentPoints = Number(agentRes.rows[0].points);
+
+    // ❌ Insufficient balance
+    if (agentPoints < pointsToTransfer) {
+      return res.status(400).json({ error: "Insufficient balance" });
+    }
+
+    // =========================
+    // 🔁 START TRANSACTION
+    // =========================
+    await pool.query('BEGIN');
+
+    // ➖ Deduct from agent
+    const newAgentBalance = agentPoints - pointsToTransfer;
+
+    await pool.query(`
+      UPDATE users SET points = $1 WHERE id = $2
+    `, [newAgentBalance, currentUserId]);
+
+    // ➕ Add to player
+    const newPlayerBalance = Number(player.points) + pointsToTransfer;
+
+    await pool.query(`
+      UPDATE users SET points = $1 WHERE id = $2
+    `, [newPlayerBalance, userId]);
+
+    
+    // 📝 Log agent (DEBIT)
+    await pool.query(`
+      INSERT INTO wallet_transactions 
+      (user_id, type, amount, balance_after, description)
+      VALUES ($1, 'debit', $2, $3, $4)
+    `, [
+      currentUserId,
+      pointsToTransfer,
+      newAgentBalance,
+      `Transferred to player ID ${userId}`
+    ]);
+
+    // 📝 Log player (CREDIT)
+    await pool.query(`
+      INSERT INTO wallet_transactions 
+      (user_id, type, amount, balance_after, description)
+      VALUES ($1, 'credit', $2, $3, $4)
+    `, [
+      userId,
+      pointsToTransfer,
+      newPlayerBalance,
+      `Received from agent ID ${currentUserId}`
+    ]);
+
+    await pool.query('COMMIT');
+
+    res.json({ message: "Points transferred successfully" });
 
   } catch (err) {
+    await pool.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Transaction failed" });
   }
 });
 // ==========================
