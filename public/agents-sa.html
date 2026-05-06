@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Players Management - SWC423</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dashboard-body">
+
+    <!-- SIDEBAR (COPY SAME SIDEBAR HERE) -->
+    <div class="sidebar" id="sidebar">
+        <h2>Welcome, <span class="username">Super Admin</span></h2>
+
+        <a href="superadmin.html">🏠 Dashboard</a>
+        <a href="wallet-logs-sa.html">📄 Wallet Logs</a>
+        <a href="commission-logs-sa.html">💰 Commission Logs</a>
+        <a href="archives.html">🗂 Game Archives</a>
+
+        <div class="category">Downlines</div>
+        <a href="agents-sa.html">👥 Agents</a>
+        <a href="players-sa.html">🧑 Players</a>
+
+        <div class="category">Settings</div>
+        <!--<a href="account.html">👥 Account Management</a>-->
+        <a href="change-password-superadmin.html">🔑 Change Password</a>
+        <a href="#" onclick="logout()">🚪 Logout</a>
+    </div>
+    <div id="overlay" class="overlay" onclick="closeSidebar()"></div>
+    <!-- MAIN -->
+    <div class="main">
+
+        <div class="header">
+            <div class="hamburger" onclick="toggleSidebar()">☰</div>
+        </div>
+        <div class="content">
+            <h2>Agents Management</h2>
+            <div class="membership-card">
+                <!-- FILTER -->
+                <div class="filter-bar">
+                    <select id="roleFilter" onchange="loadAgents()" class="membership-link">
+                        
+                        <option value="">All Roles</option>
+                        <option value="master_agent">🗃️ Incorporator</option>
+                        <option value="sub_agent">📑 Master Agent</option>
+                        <option value="agent">🏷️ Gold Agent</option>
+                    </select>
+                </div>
+                    <select id="statusFilter" onchange="loadAgents()" class="membership-link">
+                        <option value="">All Status</option>
+                        <option value="online">🟢 Active</option>
+                        <option value="offline">⚪ Offline</option>
+                        <option value="suspended">🔴 Suspended</option>
+                    </select>
+                
+                <!-- TABLE -->
+                <div class="table-wrapper">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable(0)">Username <span class="sort-arrow">↑↓</span></th>
+                                <th>Actions</th>
+                                <th onclick="sortTable(2)">Wallet <span class="sort-arrow">↑↓</span></th>
+                                <th onclick="sortTable(3)">Earnings <span class="sort-arrow">↑↓</span></th>
+                                <th onclick="sortTable(4)">Commission <span class="sort-arrow">↑↓</span></th>
+                            </tr>
+                            </thead>
+                        <tbody id="agentsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div id="pointsModal" class="modal">
+            <div class="modal-content">
+                <h3>Add Points</h3>
+                <input type="number" id="pointsInput" placeholder="Enter amount">
+                <button onclick="confirmAddPoints()">Confirm</button>
+                <button onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+        <!-- COMMISSION MODAL -->
+        <div id="commissionModal" class="modal">
+            <div class="modal-content">
+                <h3 id="modalTitle"></h3>
+                <p>Available: <span id="availableAmount">0</span></p>
+                <input type="number" id="commissionInput" placeholder="Enter amount">
+                <button onclick="confirmCommission()">Confirm</button>
+                <button onclick="closeCommissionModal()">Cancel</button>
+            </div>
+        </div>
+        <div id="networkModal" class="modal">
+            <div class="modal-content" style="max-width:700px;">
+                <h3>Agent Network</h3>
+                <div id="networkContent">Loading...</div>
+                <button onclick="closeNetworkModal()">Close</button>
+            </div>
+        </div>
+        <div id="snackbar"></div>
+        <footer>
+            © 2024 SWC423. All rights reserved.
+        </footer>
+
+    </div>
+
+    <script>
+        async function checkSession() {
+            try {
+                const res = await fetch('/api/dashboard', {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                const data = await res.json();
+
+                if (data.role !== '-1') {
+                    window.location.href = '/';
+                    return;
+                }
+
+                document.querySelectorAll('.username')
+                    .forEach(el => el.textContent = data.username);
+
+                
+            } catch (err) {
+                console.error(err);
+                window.location.href = '/';
+            }
+        }
+
+        // =========================
+        // Hamburger & overlay
+        // =========================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active'); // show overlay
+            } else {
+                sidebar.classList.toggle('collapsed');
+            }
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        // Close sidebar if click outside (mobile)
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(event.target) && !event.target.classList.contains('hamburger')) {
+                    closeSidebar();
+                }
+            }
+        });
+
+        // =========================
+        // Load pending approvals count
+        // =========================
+        async function loadPendingCount() {
+            try {
+                const res = await fetch('/api/pending-count', {
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+
+                const badge = document.getElementById('pendingBadge');
+
+                if (data.count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = data.count;
+                } else {
+                    badge.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        // =========================
+        // Load commission withdrawal count 
+        
+        function showSnackbar(message, success = false) {
+            const snackbar = document.getElementById("snackbar");
+            snackbar.textContent = message;
+            snackbar.className = success ? "show success" : "show";
+
+            setTimeout(() => {
+                snackbar.className = snackbar.className.replace("show", "");
+            }, 3000);
+        }
+        
+        // =========================
+        // Loading players
+        // =========================
+        let selectedUserId = null;
+        let currentUserId = null;
+
+        async function loadPlayers() {
+            try {
+                const session = await fetch('/api/dashboard', { credentials: 'include' });
+                const user = await session.json();
+                currentUserId = user.id;
+
+                const res = await fetch('/api/players', { credentials: 'include' });
+                let players = await res.json();
+
+                const filter = document.getElementById('statusFilter').value;
+                if (filter) {
+                    players = players.filter(p => p.status === filter);
+                }
+
+                const table = document.getElementById('playersTable');
+                table.innerHTML = '';
+
+                players.forEach(p => {
+
+                    const isDirect = Number(p.parent_id) === Number(currentUserId);
+
+                    const row = document.createElement('tr');
+                    console.log("Player parent:", p.parent_id, "Current user:", currentUserId);
+                    row.innerHTML = `
+                        <td>${p.username}</td>
+                        <td>${p.points}</td>
+                        <td>${p.parent_username || '-'}</td>
+                        <td class="status ${p.status}">${p.status}</td>
+                        <td class="actions">
+
+                            <button class="btn add ${!isDirect ? 'disabled' : ''}" 
+                                onclick="${isDirect ? `openModal(${p.id})` : ''}">
+                                ➕
+                            </button>
+
+                            <button class="btn ${p.status === 'suspended' ? 'activate' : 'suspend'}"
+                                onclick="toggleStatus(${p.id}, '${p.status}')">
+                                ${p.status === 'suspended' ? '✅' : '⛔'}
+                            </button>
+
+                            <button class="btn reset" onclick="resetPassword(${p.id})">
+                                🔑
+                            </button>
+
+                        </td>
+                    `;
+
+                    table.appendChild(row);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        // =========================
+        // Toggle status
+        // =========================
+        async function toggleStatus(userId, currentStatus) {
+            const newStatus = currentStatus === 'suspended' ? 'offline' : 'suspended';
+
+            await fetch('/api/update-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId, status: newStatus })
+            });
+
+            showSnackbar("Status updated");
+            loadAgents();
+        }
+        // =========================
+        // Reset password
+        // =========================
+        async function resetPassword(userId) {
+            if (!confirm("Reset password to 123456?")) return;
+
+            const res = await fetch('/api/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await res.json();
+
+            showSnackbar(data.message);
+        }
+        // =========================
+        // Loading points modal
+        // =========================
+        function openModal(userId) {
+            selectedUserId = userId;
+            document.getElementById('pointsModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('pointsModal').style.display = 'none';
+        }
+
+        async function confirmAddPoints() {
+            const amount = document.getElementById('pointsInput').value;
+
+            if (!amount || amount <= 0) {
+                showSnackbar("Invalid amount");
+                return;
+            }
+
+            const res = await fetch('/api/add-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    userId: selectedUserId,
+                    amount: Number(amount)
+                })
+            });
+
+            const data = await res.json();
+
+            // ✅ HANDLE ERROR FROM SERVER
+            if (!res.ok) {
+                showSnackbar(data.error);
+                return;
+            }
+
+            // ✅ SUCCESS
+            showSnackbar(data.message, true);
+
+            closeModal();
+            loadAgents();
+        }
+        let sortDirection = 1; // 1 = asc, -1 = desc
+        let currentSort = '';
+
+        function sortTable(columnIndex) {
+            const table = document.querySelector('.styled-table tbody');
+            const rows = Array.from(table.querySelectorAll('tr'));
+            let asc = table.getAttribute('data-sort-dir') !== 'asc';
+
+            rows.sort((a, b) => {
+                const cellA = a.children[columnIndex].textContent.trim();
+                const cellB = b.children[columnIndex].textContent.trim();
+
+                // Numeric sort for Wallet, Earnings, Commission
+                if (columnIndex >= 2) {
+                    const numA = parseFloat(cellA.replace(/[^0-9.-]+/g,"")) || 0;
+                    const numB = parseFloat(cellB.replace(/[^0-9.-]+/g,"")) || 0;
+                    return asc ? numA - numB : numB - numA;
+                }
+
+                // Text sort for Username
+                return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+            });
+
+            rows.forEach(row => table.appendChild(row));
+            table.setAttribute('data-sort-dir', asc ? 'asc' : 'desc');
+        }
+        async function loadAgents() {
+            try {
+                const session = await fetch('/api/dashboard', { credentials: 'include' });
+                const user = await session.json();
+
+                const res = await fetch('/api/agents', { credentials: 'include' });
+                let agents = await res.json();
+
+                const roleFilter = document.getElementById('roleFilter').value;
+                const statusFilter = document.getElementById('statusFilter').value;
+
+                if (roleFilter) {
+                    agents = agents.filter(a => a.role === roleFilter);
+                }
+
+                if (statusFilter) {
+                    agents = agents.filter(a => a.status === statusFilter);
+                }
+
+                const table = document.getElementById('agentsTable');
+                table.innerHTML = '';
+
+                agents.forEach(a => {
+
+                    const row = document.createElement('tr');
+
+                    row.innerHTML = `
+                        <td><p class="btn add">${a.username}</p></td>
+
+                        <td>
+                            <select class="action-dropdown"
+                                onchange="handleAgentAction(this, this.value, ${a.id}, ${a.points || 0}, ${a.commission_earnings || 0})">
+
+                                <option value="">⚙️ Select Action</option>
+                                <option value="load">➕ Load</option>
+                                <option value="withdraw_load">💸 Withdraw Load</option>
+                                <option value="withdraw_commission">💰 Withdraw Commission</option>
+                                <option value="network">🌐 View Network</option>
+                            </select>
+                        </td>
+
+                        <td class="wallet-yellow">${formatPHP(a.points)}</td>
+
+                        <td class="earnings-green">${formatPHP(a.commission_earnings || 0)}</td>
+
+                        <td>
+                            CURRENT: ${a.commission_rate || 0}%<br>
+                            <input type="number" min="0" max="100"
+                                value="${a.commission_rate || 0}"
+                                onchange="updateCommission(${a.id}, this.value)">
+                        </td>
+                    `;
+
+                    table.appendChild(row);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        // =========================
+        // Update commission rate
+        // =========================
+        async function updateCommission(userId, rate) {
+            const res = await fetch('/api/update-commission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId, rate: Number(rate) })
+                
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showSnackbar(data.error);
+                return;
+            }
+            
+            showSnackbar("Commission updated", true);
+            loadAgents();
+        }
+        // =========================
+        // Convert commission to points
+        // =========================
+        async function convertCommission(userId) {
+            const res = await fetch('/api/convert-commission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showSnackbar(data.error);
+                return;
+            }
+
+            showSnackbar(data.message, true);
+            loadAgents();
+        }
+        // =========================
+        // Withdraw commission
+        // =========================
+        async function withdrawCommission(userId) {
+            const res = await fetch('/api/withdraw-points', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ userId })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showSnackbar(data.error);
+                return;
+            }
+
+            showSnackbar(data.message, true);
+            loadAgents();
+        }
+        // =========================
+        // Commission modal logic
+        // =========================
+        let actionType = null;
+        let selectedAgentId = null;
+        let maxAmount = 0;
+
+        function openCommissionModal(userId, available, type) {
+            selectedAgentId = userId;
+            actionType = type;
+            maxAmount = available;
+
+            document.getElementById('availableAmount').textContent = available;
+            document.getElementById('commissionInput').value = '';
+
+            document.getElementById('modalTitle').textContent =
+                type === 'convert' ? 'Convert Commission' : 'Withdraw Points';
+
+            document.getElementById('commissionModal').style.display = 'flex';
+        }
+
+        function closeCommissionModal() {
+            document.getElementById('commissionModal').style.display = 'none';
+        }
+        // =========================
+        // Handle commission conversion/withdrawal
+        // =========================
+        async function confirmCommission() {
+            const amount = Number(document.getElementById('commissionInput').value);
+
+            if (!amount || amount <= 0 || amount > maxAmount) {
+                showSnackbar("Invalid amount");
+                return;
+            }
+
+            const endpoint = actionType === 'convert'
+                ? '/api/convert-commission'
+                : '/api/withdraw-points';
+
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    userId: selectedAgentId,
+                    amount
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                showSnackbar(data.error);
+                return;
+            }
+
+            showSnackbar(data.message, true);
+            closeCommissionModal();
+            loadAgents();
+        }
+        // =========================
+        // Handle dropdown actions
+        // =========================
+        function handleAgentAction(selectEl, action, userId, points, commission) {
+            if (!action) return;
+
+            switch(action) {
+                case 'load':
+                    openModal(userId);
+                    break;
+
+                case 'withdraw_load':
+                    openCommissionModal(userId, points, 'withdraw');
+                    break;
+
+                case 'withdraw_commission':
+                    openCommissionModal(userId, commission, 'convert');
+                    break;
+
+                case 'network':
+                    openNetwork(userId);
+                    break;
+
+                case 'block':
+                    toggleStatus(userId, 'offline');
+                    break;
+            }
+
+            // ✅ SAFE reset
+            selectEl.value = "";
+        }
+        async function openNetwork(userId) {
+            document.getElementById('networkModal').style.display = 'flex';
+            const container = document.getElementById('networkContent');
+
+            // 👇 optional title update
+            document.querySelector('#networkModal h3').textContent = `Agent ${userId} Network`;
+
+            container.innerHTML = 'Loading...';
+
+            try {
+                const res = await fetch(`/api/network/${userId}`, {
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+
+                renderNetwork(data);
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = 'Failed to load network';
+            }
+        }
+        function renderNetwork(list) {
+            const container = document.getElementById('networkContent');
+
+            if (!list || list.length === 0) {
+                container.innerHTML = 'No downlines found';
+                return;
+            }
+
+            let html = `
+                <table class="styled-table" style="width:100%; text-align:left;">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Points</th>
+                            <th>Status</th>
+                            <th>Parent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            list.forEach(user => {
+                html += `
+                    <tr>
+                        <td>${user.username}</td>
+                        <td>${formatRole(user.role)}</td>
+                        <td>${formatPHP(user.points || 0)}</td>
+                        <td class="status ${user.status}">
+                            ${user.status}
+                        </td>
+                        <td>${user.parent_username || '-'}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+        function closeNetworkModal() {
+            document.getElementById('networkModal').style.display = 'none';
+        }
+        function formatPHP(amount) {
+            return new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP'
+            }).format(amount);
+        }
+        // =========================
+        // Load withdrawal request count
+        // =========================
+        async function loadWithdrawCount() {
+            try {
+                const res = await fetch('/api/withdrawal-count', {
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+
+                const badge = document.getElementById('withdrawBadge');
+
+                if (data.count > 0) {
+                    badge.style.display = 'inline-block';
+                    badge.textContent = data.count;
+                } else {
+                    badge.style.display = 'none';
+                }
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        //Code for logout
+        async function logout() {
+            try {
+                const res = await fetch('/api/logout', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+                console.log(data);
+
+                // ✅ Redirect after logout
+                showSnackbar("Logged out successfully");
+
+                setTimeout(() => {
+                    window.location.href = '/index.html';
+                }, 1000);
+
+            } catch (err) {
+                console.error(err);
+                showSnackbar("Logout failed", "error");
+            }
+        }
+        // Call after session check
+        checkSession().then(() => {
+            loadAgents();
+        });
+    </script>
+
+</body>
+</html>
