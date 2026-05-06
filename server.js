@@ -631,17 +631,28 @@ app.post('/api/reject-user', isAuthenticated, async (req, res) => {
 app.get('/api/players', isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.id;
+    const userRole = req.session.user.role;
 
-    const result = await pool.query(`
+    let query = `
       SELECT u.id, u.username, u.points, u.status, u.role, u.parent_id, u.created_at,
              p.username AS parent_username
       FROM users u
       LEFT JOIN users p ON u.parent_id = p.id
       WHERE u.role = 'player'
       AND u.status NOT IN ('pending', 'rejected')
-      AND u.parent_id = $1
-      ORDER BY u.created_at DESC
-    `, [userId]);
+    `;
+
+    const params = [];
+
+    // 🔥 ONLY restrict if NOT super role
+    if (userRole !== '-1') {
+      query += ` AND u.parent_id = $1`;
+      params.push(userId);
+    }
+
+    query += ` ORDER BY u.created_at DESC`;
+
+    const result = await pool.query(query, params);
 
     res.json(result.rows);
 
@@ -829,10 +840,10 @@ app.get('/api/agents', isAuthenticated, async (req, res) => {
     let params = [];
 
     // ✅ ONLY restrict if NOT admin
-    //if (currentUserRole == 'admin') {
+    if (currentUserRole !== '-1') {
       query += ` AND u.parent_id = $1`;
       params.push(currentUserId);
-    //}
+    }
 
     query += ` ORDER BY u.created_at DESC`;
 
@@ -995,13 +1006,33 @@ app.post('/api/withdraw-points', isAuthenticated, async (req, res) => {
 app.get('/api/my-wallet-transactions', isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.id;
+    const userRole = req.session.user.role;
 
-    const result = await pool.query(`
-      SELECT id, type, amount, balance_after, description, reference_id, created_at
-      FROM wallet_transactions
-      WHERE user_id = $1
-      ORDER BY created_at DESC
-    `, [userId]);
+    let query = `
+      SELECT 
+        wt.id,
+        wt.type,
+        wt.amount,
+        wt.balance_after,
+        wt.description,
+        wt.reference_id,
+        wt.created_at,
+        u.username
+      FROM wallet_transactions wt
+      LEFT JOIN users u ON wt.user_id = u.id
+    `;
+
+    const params = [];
+
+    // ✅ Restrict only if NOT super admin
+    if (userRole !== '-1') {
+      query += ` WHERE wt.user_id = $1`;
+      params.push(userId);
+    }
+
+    query += ` ORDER BY wt.created_at DESC`;
+
+    const result = await pool.query(query, params);
 
     res.json(result.rows);
 
@@ -1369,7 +1400,20 @@ app.post('/api/start-game', isAuthenticated, async (req, res) => {
       UPDATE games SET status='CLOSED'
       WHERE status='OPEN'
     `);
-
+    // ✅ ADD THIS BLOCK HERE
+    const existing = await pool.query(`
+      SELECT id FROM games
+      WHERE fight_number = $1
+      AND event_name = $2
+      AND status != 'RESOLVED'
+      LIMIT 1
+    `, [fightNumber, event_name]);
+    
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: "Game already exists" });
+    }
+    
+    // ✅ INSERT NEW GAME
     const result = await pool.query(`
       INSERT INTO games (fight_number, status, event_name)
       VALUES ($1, 'OPEN', $2)
@@ -1402,6 +1446,24 @@ app.post('/api/start-game', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+// ==========================
+//  CLEANUP DUMMY BETS (AFTER GAME RESOLUTION - SAFETY MEASURE)
+// ==========================
+const cleanupDummyBets = async () => {
+  try {
+    await pool.query(`
+      DELETE FROM bets
+      WHERE is_dummy = true
+      AND game_id IN (
+        SELECT id FROM games WHERE status = 'RESOLVED'
+      )
+    `);
+
+    console.log("✅ Dummy bets cleaned up");
+  } catch (err) {
+    console.error("❌ Failed to clean dummy bets:", err);
+  }
+};
 // ==========================
 //  CLOSE GAME (DECLARATOR ONLY)
 // ==========================
@@ -1780,6 +1842,7 @@ app.post('/api/promote-user', isAuthenticated, async (req, res) => {
 app.get('/api/my-commission-transactions', isAuthenticated, async (req, res) => {
   try {
     const userId = req.session.user.id;
+    const role = req.session.user.role;
 
     const {
       search = '',
@@ -1801,13 +1864,21 @@ app.get('/api/my-commission-transactions', isAuthenticated, async (req, res) => 
       FROM commission_transactions ct
       LEFT JOIN users u ON u.id = ct.source_user_id
       LEFT JOIN games g ON g.id = ct.game_id
-      WHERE ct.user_id = $1
     `;
 
-    const params = [userId];
-    let i = 2;
+    const params = [];
+    let i = 1;
 
-    // 🔍 SEARCH (username or game fight number)
+    // ✅ ONLY filter by user if NOT super admin
+    if (role !== -1) {
+      query += ` WHERE ct.user_id = $${i}`;
+      params.push(userId);
+      i++;
+    } else {
+      query += ` WHERE 1=1`; // dummy condition for easier appending
+    }
+
+    // 🔍 SEARCH
     if (search) {
       query += ` AND (
         u.username ILIKE $${i} 
