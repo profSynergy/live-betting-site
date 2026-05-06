@@ -46,14 +46,14 @@ async function runWave(declaratorId) {
         // 🟢 EARLY: fast + small
         if (elapsed < 30) {
             intervalSpeed = randomRange(1000, 3000); 
-            minBet = 20;
-            maxBet = 1000;
+            minBet = 200;
+            maxBet = 10000;
 
         // 🟡 MID: balanced
         } else if (elapsed < 90) {
             intervalSpeed = randomRange(2000, 8000);
-            minBet = 100;
-            maxBet = 2000;
+            minBet = 1000;
+            maxBet = 20000;
 
         // 🔴 LATE: slow + random (small OR medium)
         } else {
