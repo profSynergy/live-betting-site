@@ -1107,7 +1107,7 @@ body, html {
     }
     async function fetchHistory(){
         try{
-            const res = await fetch('/api/game-history');
+            const res = await fetch('/api/beads-history');
             const data = await res.json();
 
             renderBeadPlate(data);
