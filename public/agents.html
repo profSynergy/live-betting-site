@@ -474,6 +474,7 @@
                                 <option value="withdraw_load">💸 Withdraw Load</option>
                                 <option value="withdraw_commission">💰 Withdraw Commission</option>
                                 <option value="network">🌐 View Network</option>
+                                <option value="reset_password">🔑 Reset Password</option>
                             </select>
                         </td>
                         <td class="wallet-yellow">${formatPHP(a.points)}</td>
@@ -656,6 +657,10 @@
                 case 'block':
                     toggleStatus(userId, 'offline');
                     break;
+                case 'reset_password':
+                    resetAgentPassword(userId);
+                    break;
+                
             }
 
             // ✅ SAFE reset
@@ -780,6 +785,31 @@
             } catch (err) {
                 console.error(err);
                 showSnackbar("Logout failed", "error");
+            }
+        }
+        async function resetAgentPassword(userId) {
+            if (!confirm("Reset password to 123456?")) return;
+
+            try {
+                const res = await fetch('/api/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ userId })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showSnackbar(data.error || "Reset failed");
+                    return;
+                }
+
+                showSnackbar(data.message || "Password reset successful", true);
+
+            } catch (err) {
+                console.error(err);
+                showSnackbar("Server error");
             }
         }
         // Call after session check
