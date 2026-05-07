@@ -1794,12 +1794,12 @@ app.post('/api/declarator/set-video', isAuthenticated, async (req, res) => {
 app.get('/api/game-history', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT g.winner
+            SELECT g.winner, g.fight_number
             FROM games g
             JOIN active_event ae
                 ON g.event_name = ae.event_name
             WHERE g.winner IS NOT NULL
-            ORDER BY g.fight_number ASC
+            ORDER BY g.fight_number DESC
             LIMIT 200
         `);
 
