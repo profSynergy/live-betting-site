@@ -49,6 +49,13 @@
 
                 <!-- FILTER -->
                 <div class="filter-bar">
+                    <input
+                        type="text"
+                        id="searchUsername"
+                        class="membership-link"
+                        placeholder="🔍 Search username..."
+                        oninput="loadPlayers()"
+                    />
                     <!--<select id="statusFilter" class="styled-select" onchange="loadPlayers()">-->
                     <select id="statusFilter" class="membership-link" onchange="loadPlayers()">
                         <option value="">All Status</option>
@@ -261,7 +268,13 @@
                 if (filter) {
                     players = players.filter(p => p.status === filter);
                 }
+                const search = document.getElementById('searchUsername')?.value.toLowerCase() || '';
 
+                if (search) {
+                    players = players.filter(p =>
+                        p.username.toLowerCase().includes(search)
+                    );
+                }
                 const table = document.getElementById('playersTable');
                 table.innerHTML = '';
 
