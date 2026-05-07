@@ -186,7 +186,19 @@ body, html {
                             allowfullscreen
                             style="display:block;">
                         </iframe>
-
+                        <div id="videoPlaceholder" style="
+                            display:none;
+                            position:absolute;
+                            inset:0;
+                            background:#000;
+                            color:#fff;
+                            justify-content:center;
+                            align-items:center;
+                            text-align:center;
+                            font-size:14px;
+                        ">
+                            📡 Video is currently unavailable
+                        </div>
                         
 
                         <!-- SWITCH BUTTONS -->
@@ -208,7 +220,7 @@ body, html {
                         color:#facc15;
                         font-weight:bold;
                     ">
-                        Welcome to SWC888
+                        Welcome to SWC423
                     </marquee>
                 </div>
 
@@ -332,7 +344,7 @@ body, html {
             </div>
         </div>
     </div> <!-- content -->
-    <footer>
+     <footer>
         © 2024 <span class="website-name"></span>. All rights reserved.
     </footer>
 </div> <!-- main -->
@@ -402,7 +414,7 @@ body, html {
             ws.close();
         };
     }
-    // =========================
+// =========================
     // Global App Config
     // =========================
     let APP_CONFIG = {
@@ -525,15 +537,29 @@ body, html {
         // =========================
         // 💰 PAYOUT COMPUTATION
         // =========================
-        const totalPool =
-            data.totalMeron +
-            data.totalWala +
-            (data.totalDraw || 0);
+        const A = data.totalMeron;
+        const B = data.totalWala;
 
-        const CUT = 0.917;
+        const totalPool = A + B;
 
-        payoutMeron = data.totalMeron ? (totalPool / data.totalMeron) * CUT : 0;
-        payoutWala = data.totalWala ? (totalPool / data.totalWala) * CUT : 0;
+        // 🎯 TARGET AVERAGE ODDS
+        const TARGET_AVG = 1.83;
+
+        // 🧠 DYNAMIC CUT
+        let CUT = 0;
+
+        if (A > 0 && B > 0) {
+            CUT = (2 * TARGET_AVG * A * B) / ((A + B) ** 2);
+        }
+
+        // ⚠️ OPTIONAL: only minimum protection (no max as requested)
+        const MIN_CUT = 0.70;
+        CUT = Math.max(MIN_CUT, CUT);
+
+        // 🎲 FINAL ODDS
+        payoutMeron = A ? (totalPool / A) * CUT : 0;
+        payoutWala  = B ? (totalPool / B) * CUT : 0;
+
 
         const DRAW_MULTIPLIER = 8;
         payoutDraw = DRAW_MULTIPLIER;
@@ -591,7 +617,7 @@ body, html {
         game.status = gameStatus;
 
         updateControls(gameStatus, data.stream_enabled);
-
+        
         // =========================
         // 🔥 STATUS CHANGE DETECTION
         // =========================
@@ -870,6 +896,8 @@ body, html {
 
             if(balance <= 0){
                 disableBetting("No balance. Contact your agent.");
+                // ❌ FORCE VIDEO OFF
+                handleStreamToggle(false);
             }
 
         } catch(err){
@@ -1002,7 +1030,8 @@ body, html {
                 data.announcement || "Welcome Players";
 
             updateVideo(data); // ✅ ONLY THIS
-
+            // ✅ APPLY STREAM STATE FROM DB
+            handleStreamToggle(data.stream_enabled);
         }catch(e){
             console.error(e);
         }
@@ -1014,23 +1043,42 @@ body, html {
 
         let url = data.video_url;
 
-        // ✅ FORCE AUTOPLAY + MUTE (required by browsers)
         if (!url.includes("autoplay=1")) {
             url += (url.includes("?") ? "&" : "?") + "autoplay=1&mute=1";
         }
 
-        // ✅ Prevent reload spam
+        // ✅ SAVE IT HERE
+        currentVideo = url;
+
         if (iframe.src !== url) {
             iframe.src = url;
         }
-
     }
     function handleStreamToggle(enabled) {
         const iframe = document.getElementById("videoFrame");
+        const placeholder = document.getElementById("videoPlaceholder");
 
-        if (!iframe) return;
+        if (!iframe || !placeholder) return;
 
-        iframe.style.display = enabled ? "block" : "none";
+        const balance = Number(document.getElementById('balance').textContent.replace(/,/g, ''));
+
+        if (enabled && balance > 0) {
+            // ✅ SHOW VIDEO
+            iframe.style.display = "block";
+            placeholder.style.display = "none";
+
+            if (currentVideo) {
+                iframe.src = currentVideo;
+            }
+
+        } else {
+            // ❌ HIDE VIDEO
+            iframe.src = ""; // stop video
+            iframe.style.display = "none";
+
+            // ✅ SHOW PLACEHOLDER
+            placeholder.style.display = "flex";
+        }
     }
     function animateValue(id, start, end) {
         document.getElementById(id).textContent = formatNumber(end);
@@ -1324,7 +1372,6 @@ body, html {
     }
 
     init();
-    // 🔥 KEEP CONNECTION ALIVE (PREVENT DISCONNECT)
    
 </script>
 </body>
