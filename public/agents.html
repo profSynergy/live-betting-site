@@ -103,6 +103,26 @@
                 <button onclick="closeNetworkModal()">Close</button>
             </div>
         </div>
+        <div id="resetPasswordModal" class="modal">
+            <div class="modal-content">
+                <h3>🔑 Reset Password</h3>
+
+                <p>
+                    Are you sure you want to reset this user’s password to:
+                    <strong>123456</strong>?
+                </p>
+
+                <div style="margin-top:15px;">
+                    <button onclick="confirmResetPassword()" class="btn activate">
+                        Yes, Reset
+                    </button>
+
+                    <button onclick="closeResetPasswordModal()" class="btn suspend">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
         <div id="snackbar"></div>
         <footer>
             © 2024 <span class="website-name"></span>. All rights reserved.
@@ -111,6 +131,7 @@
     </div>
 
     <script>
+        let resetUserId = null;
         // =========================
         // Global App Config
         // =========================
@@ -787,15 +808,17 @@
                 showSnackbar("Logout failed", "error");
             }
         }
-        async function resetAgentPassword(userId) {
-            if (!confirm("Reset password to 123456?")) return;
-
+        function resetAgentPassword(userId) {
+            resetUserId = userId;
+            document.getElementById('resetPasswordModal').style.display = 'flex';
+        }
+        async function confirmResetPassword() {
             try {
                 const res = await fetch('/api/reset-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ userId })
+                    body: JSON.stringify({ userId: resetUserId })
                 });
 
                 const data = await res.json();
@@ -807,10 +830,16 @@
 
                 showSnackbar(data.message || "Password reset successful", true);
 
+                closeResetPasswordModal();
+
             } catch (err) {
                 console.error(err);
                 showSnackbar("Server error");
             }
+        }
+        function closeResetPasswordModal() {
+            document.getElementById('resetPasswordModal').style.display = 'none';
+            resetUserId = null;
         }
         // Call after session check
         // =========================
