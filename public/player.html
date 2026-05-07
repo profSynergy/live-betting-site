@@ -1120,26 +1120,87 @@ body, html {
 
         const MAX_ROWS = 6;
 
-        let col = [];
+        let columns = [];
+        let currentCol = [];
+        let lastWinner = null;
 
-        history.forEach((game, i) => {
-            const bead = document.createElement('div');
+        history.forEach(game => {
+            const winner = game.winner;
+            const isNeutral = (winner === 'DRAW' || winner === 'CANCELLED');
 
-            bead.className = game.winner.toLowerCase();
-            bead.textContent = game.winner;
+            if (!isNeutral) {
+                if (winner !== lastWinner || currentCol.length >= MAX_ROWS){
+                    if (currentCol.length){
+                        columns.push(currentCol);
+                    }
+                    currentCol = [];
+                }
+                lastWinner = winner;
+            }
 
-            col.push(bead);
+            currentCol.push(winner);
+        });
 
-            if (col.length === MAX_ROWS || i === history.length - 1) {
-                const wrapper = document.createElement('div');
-                wrapper.style.display = 'grid';
-                wrapper.style.gridTemplateRows = `repeat(${MAX_ROWS}, 14px)`;
-                wrapper.style.gap = '4px';
+        if (currentCol.length){
+            columns.push(currentCol);
+        }
 
-                col.forEach(b => wrapper.appendChild(b));
-                container.appendChild(wrapper);
+        // =========================
+        // 🔥 TRACK LATEST ELEMENT
+        // =========================
+        let latestBead = null;
 
-                col = [];
+        columns.forEach((col, colIndex) => {
+            for (let i = 0; i < MAX_ROWS; i++){
+                const dot = document.createElement('div');
+
+                const size = window.innerWidth <= 768 ? 10 : 12;
+                dot.style.width = size + 'px';
+                dot.style.height = size + 'px';
+                dot.style.borderRadius = '50%';
+                dot.style.border = '2px solid transparent';
+                dot.style.background = 'transparent';
+
+                const result = col[i];
+
+                if (!result){
+                    dot.style.visibility = 'hidden';
+                } else {
+                    switch(result){
+                        case 'MERON':
+                            dot.style.borderColor = 'red';
+                            break;
+                        case 'WALA':
+                            dot.style.borderColor = 'blue';
+                            break;
+                        case 'DRAW':
+                            dot.style.borderColor = 'green';
+                            break;
+                        case 'CANCELLED':
+                            dot.style.borderColor = 'gray';
+                            break;
+                    }
+
+                    // 🔥 mark latest valid bead
+                    latestBead = dot;
+                }
+
+                container.appendChild(dot);
+            }
+        });
+
+        // =========================
+        // 🔥 APPLY BLINK TO LATEST
+        // =========================
+        requestAnimationFrame(() => {
+            container.scrollLeft = container.scrollWidth;
+
+            // remove old highlights (safety)
+            document.querySelectorAll('.latest-bead')
+                .forEach(el => el.classList.remove('latest-bead'));
+
+            if (latestBead) {
+                latestBead.classList.add('latest-bead');
             }
         });
     }
