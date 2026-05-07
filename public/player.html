@@ -1141,104 +1141,104 @@ body, html {
         }
     }
     function renderBeadPlate(history){
-        const container = document.getElementById('beadPlate');
-        container.innerHTML = '';
+    const container = document.getElementById('beadPlate');
+    container.innerHTML = '';
 
-        const MAX_ROWS = 6;
+    const MAX_ROWS = 6;
 
-        let columns = [];
-        let currentCol = [];
-        let lastWinner = null;
+    let columns = [];
+    let currentCol = [];
+    let lastWinner = null;
 
-        history.forEach(game => {
+    history.forEach(game => {
 
-            const winner = game.winner;
+        const winner = game.winner;
 
-            // DRAW/CANCELLED do not affect streak logic
-            const isNeutral =
-                winner === 'DRAW' ||
-                winner === 'CANCELLED';
+        // DRAW/CANCELLED do not affect streak logic
+        const isNeutral =
+            winner === 'DRAW' ||
+            winner === 'CANCELLED';
 
-            if (!isNeutral){
+        if (!isNeutral){
 
-                if (
-                    winner !== lastWinner ||
-                    currentCol.length >= MAX_ROWS
-                ){
-                    if(currentCol.length){
-                        columns.push(currentCol);
-                    }
-
-                    currentCol = [];
+            if (
+                winner !== lastWinner ||
+                currentCol.length >= MAX_ROWS
+            ){
+                if(currentCol.length){
+                    columns.push(currentCol);
                 }
 
-                lastWinner = winner;
+                currentCol = [];
             }
 
-            currentCol.push(winner);
-        });
-
-        if(currentCol.length){
-            columns.push(currentCol);
+            lastWinner = winner;
         }
 
-        // 🔥 RENDER
-        columns.forEach(col => {
+        currentCol.push(winner);
+    });
 
-            for(let i = 0; i < MAX_ROWS; i++){
-
-                const dot = document.createElement('div');
-
-                const size =
-                    window.innerWidth <= 768 ? 10 : 12;
-
-                dot.style.width = size + 'px';
-                dot.style.height = size + 'px';
-                dot.style.borderRadius = '50%';
-                dot.style.border = '2px solid transparent';
-                dot.style.background = 'transparent';
-                dot.style.boxSizing = 'border-box';
-
-                const result = col[i];
-
-                if(!result){
-
-                    dot.style.visibility = 'hidden';
-
-                } else {
-
-                    switch(result){
-
-                        case 'MERON':
-                            dot.style.borderColor = 'red';
-                            break;
-
-                        case 'WALA':
-                            dot.style.borderColor = 'blue';
-                            break;
-
-                        case 'DRAW':
-                            dot.style.borderColor = 'green';
-                            break;
-
-                        case 'CANCELLED':
-                            dot.style.borderColor = 'gray';
-                            break;
-                    }
-                }
-
-                container.appendChild(dot);
-            }
-        });
-
-        // ✅ SCROLL AFTER DOM RENDER
-        requestAnimationFrame(() => {
-            container.scrollTo({
-                left: container.scrollWidth,
-                behavior: 'smooth'
-            });
-        });
+    if(currentCol.length){
+        columns.push(currentCol);
     }
+
+    // 🔥 RENDER
+    columns.forEach(col => {
+
+        for(let i = 0; i < MAX_ROWS; i++){
+
+            const dot = document.createElement('div');
+
+            const size =
+                window.innerWidth <= 768 ? 10 : 12;
+
+            dot.style.width = size + 'px';
+            dot.style.height = size + 'px';
+            dot.style.borderRadius = '50%';
+            dot.style.border = '2px solid transparent';
+            dot.style.background = 'transparent';
+            dot.style.boxSizing = 'border-box';
+
+            const result = col[i];
+
+            if(!result){
+
+                dot.style.visibility = 'hidden';
+
+            } else {
+
+                switch(result){
+
+                    case 'MERON':
+                        dot.style.borderColor = 'red';
+                        break;
+
+                    case 'WALA':
+                        dot.style.borderColor = 'blue';
+                        break;
+
+                    case 'DRAW':
+                        dot.style.borderColor = 'green';
+                        break;
+
+                    case 'CANCELLED':
+                        dot.style.borderColor = 'gray';
+                        break;
+                }
+            }
+
+            container.appendChild(dot);
+        }
+    });
+
+    // ✅ SCROLL AFTER DOM RENDER
+    requestAnimationFrame(() => {
+        container.scrollTo({
+            left: container.scrollWidth,
+            behavior: 'smooth'
+        });
+    });
+}
     async function loadBeads() {
         const res = await fetch('/api/beads-history');
         const data = await res.json();
