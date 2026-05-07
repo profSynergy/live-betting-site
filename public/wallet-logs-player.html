@@ -152,7 +152,7 @@
                     const row = document.createElement('tr');
 
                     const typeIcon = tx.type === 'credit' ? '↑' : '↓';
-                    const typeColor = tx.type === 'credit' ? 'red' : 'green';
+                    const typeColor = tx.type === 'credit' ? '#22c55e' : '#ef4444';
 
                     row.innerHTML = `
                         <td>${new Date(tx.created_at).toLocaleString()}</td>

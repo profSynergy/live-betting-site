@@ -1017,8 +1017,16 @@ app.post('/api/withdraw-points', isAuthenticated, async (req, res) => {
 
 app.get('/api/my-wallet-transactions', isAuthenticated, async (req, res) => {
   try {
+
     const userId = req.session.user.id;
     const userRole = req.session.user.role;
+
+    const {
+      search = '',
+      from,
+      to,
+      limit = 100
+    } = req.query;
 
     let query = `
       SELECT 
@@ -1035,14 +1043,63 @@ app.get('/api/my-wallet-transactions', isAuthenticated, async (req, res) => {
     `;
 
     const params = [];
+    let i = 1;
 
-    // ✅ Restrict only if NOT super admin
+    // ==========================
+    // BASE FILTER
+    // ==========================
     if (userRole !== '-1') {
-      query += ` WHERE wt.user_id = $1`;
+      query += ` WHERE wt.user_id = $${i}`;
       params.push(userId);
+      i++;
+    } else {
+      query += ` WHERE 1=1`;
     }
 
-    query += ` ORDER BY wt.created_at DESC`;
+    // ==========================
+    // SEARCH
+    // ==========================
+    if (search) {
+      query += `
+        AND (
+          u.username ILIKE $${i}
+          OR wt.description ILIKE $${i}
+          OR CAST(wt.amount AS TEXT) ILIKE $${i}
+          OR wt.type ILIKE $${i}
+        )
+      `;
+
+      params.push(`%${search}%`);
+      i++;
+    }
+
+    // ==========================
+    // FROM DATE
+    // ==========================
+    if (from) {
+      query += ` AND wt.created_at >= $${i}`;
+      params.push(from);
+      i++;
+    }
+
+    // ==========================
+    // TO DATE
+    // ==========================
+    if (to) {
+      query += ` AND wt.created_at <= $${i}`;
+      params.push(to);
+      i++;
+    }
+
+    // ==========================
+    // ORDER + LIMIT
+    // ==========================
+    query += `
+      ORDER BY wt.created_at DESC
+      LIMIT $${i}
+    `;
+
+    params.push(limit);
 
     const result = await pool.query(query, params);
 
@@ -1050,10 +1107,9 @@ app.get('/api/my-wallet-transactions', isAuthenticated, async (req, res) => {
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: 'Server error' });
   }
 });
-
 // ==========================
 // PLACE BET API
 // ==========================
@@ -1884,7 +1940,7 @@ app.get('/api/my-commission-transactions', isAuthenticated, async (req, res) => 
     // ==========================
     // 🔥 BASE FILTER (NOW INCLUDES STATUS)
     // ==========================
-    if (role !== -1) {
+    if (role !== '-1') {
       query += ` WHERE ct.user_id = $${i} AND ct.status = 0`;
       params.push(userId);
       i++;
