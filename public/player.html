@@ -80,11 +80,6 @@
 
     box-sizing: border-box;
 }
-#beadPlate,
-#beads {
-    overflow-x: auto;
-    max-height: 120px;
-}
 .meron { background: red; }
 .wala { background: blue; }
 .draw { background: green; }
@@ -111,23 +106,15 @@ body, html {
 .game-layout {
     display: flex;
     gap: 15px;
-    align-items: flex-start; /* IMPORTANT */
 }
 
 /* VIDEO + BETTING split (desktop) */
 .video-section {
     flex: 2;
-    min-width: 0;
 }
 
 .betting-section {
     flex: 1;
-    max-width: 50%;
-    display: flex;
-    flex-direction: column;
-
-    max-height: calc(100vh - 20px); /* IMPORTANT */
-    overflow: hidden;
 }
 
 /* 📱 MOBILE FIX */
