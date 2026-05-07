@@ -46,9 +46,9 @@
         <div class="content">
             <h2>Commission Logs</h2>
             <div class="filters">
-                <input type="text" id="search" placeholder="Search username / fight #">
-                <input type="date" id="from">
-                <input type="date" id="to">
+                <input type="text" id="search" placeholder="Search username / fight #" oninput="debouncedLoad()">
+                <input type="date" id="from" onchange="loadCommissionLogs()">
+                <input type="date" id="to" onchange="loadCommissionLogs()">
                 <button onclick="loadCommissionLogs()">Search</button>
             </div>
             <div class="table-wrapper">
@@ -217,9 +217,18 @@
                 console.error(err);
             }
         }
+        let searchTimeout = null;
+
+        function debouncedLoad() {
+            clearTimeout(searchTimeout);
+
+            searchTimeout = setTimeout(() => {
+                loadCommissionLogs();
+            }, 400);
+        }
         async function loadCommissionLogs() {
             try {
-                const search = document.getElementById('search')?.value || '';
+                const search = (document.getElementById('search')?.value || '').trim();
                 const from = document.getElementById('from')?.value || '';
                 const to = document.getElementById('to')?.value || '';
 
