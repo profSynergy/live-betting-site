@@ -11,7 +11,7 @@
 .video-container { width:100%; aspect-ratio:16/9; margin-bottom:15px; }
 .video-container iframe { width:100%; height:100%; border:none; }
 
-.betting-card { background:#1e293b; border-radius:12px; padding:15px; overflow: visible; }
+.betting-card { background:#1e293b; border-radius:12px; padding:15px; overflow: visible; max-height: 85vh; overflow-y: auto;}
 
 .row { display:flex; justify-content:space-between; margin-bottom:8px; }
 .header-row { font-weight:bold; color:#14b8a6; }
@@ -47,7 +47,7 @@
   grid-template-columns: repeat(auto-fill, 30px);
   gap: 5px;
   margin-top: 10px;
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;   /* 🔥 change this */
   overflow-x: hidden; /* 🔥 prevent sideways mess */
 }
@@ -114,7 +114,8 @@ body, html {
 }
 
 .betting-section {
-    flex: 1;
+    max-height: 100vh;
+    overflow-y: auto;
 }
 
 /* 📱 MOBILE FIX */
@@ -664,6 +665,9 @@ body, html {
             lastStatus = gameStatus;
 
             fetchActiveEvent();
+            if (data.status !== lastStatus) {
+                fetchHistory();
+            }
         }
     }
     function formatNumber(num) {
@@ -1116,87 +1120,26 @@ body, html {
 
         const MAX_ROWS = 6;
 
-        let columns = [];
-        let currentCol = [];
-        let lastWinner = null;
+        let col = [];
 
-        history.forEach(game => {
-            const winner = game.winner;
-            const isNeutral = (winner === 'DRAW' || winner === 'CANCELLED');
+        history.forEach((game, i) => {
+            const bead = document.createElement('div');
 
-            if (!isNeutral) {
-                if (winner !== lastWinner || currentCol.length >= MAX_ROWS){
-                    if (currentCol.length){
-                        columns.push(currentCol);
-                    }
-                    currentCol = [];
-                }
-                lastWinner = winner;
-            }
+            bead.className = game.winner.toLowerCase();
+            bead.textContent = game.winner;
 
-            currentCol.push(winner);
-        });
+            col.push(bead);
 
-        if (currentCol.length){
-            columns.push(currentCol);
-        }
+            if (col.length === MAX_ROWS || i === history.length - 1) {
+                const wrapper = document.createElement('div');
+                wrapper.style.display = 'grid';
+                wrapper.style.gridTemplateRows = `repeat(${MAX_ROWS}, 14px)`;
+                wrapper.style.gap = '4px';
 
-        // =========================
-        // 🔥 TRACK LATEST ELEMENT
-        // =========================
-        let latestBead = null;
+                col.forEach(b => wrapper.appendChild(b));
+                container.appendChild(wrapper);
 
-        columns.forEach((col, colIndex) => {
-            for (let i = 0; i < MAX_ROWS; i++){
-                const dot = document.createElement('div');
-
-                const size = window.innerWidth <= 768 ? 10 : 12;
-                dot.style.width = size + 'px';
-                dot.style.height = size + 'px';
-                dot.style.borderRadius = '50%';
-                dot.style.border = '2px solid transparent';
-                dot.style.background = 'transparent';
-
-                const result = col[i];
-
-                if (!result){
-                    dot.style.visibility = 'hidden';
-                } else {
-                    switch(result){
-                        case 'MERON':
-                            dot.style.borderColor = 'red';
-                            break;
-                        case 'WALA':
-                            dot.style.borderColor = 'blue';
-                            break;
-                        case 'DRAW':
-                            dot.style.borderColor = 'green';
-                            break;
-                        case 'CANCELLED':
-                            dot.style.borderColor = 'gray';
-                            break;
-                    }
-
-                    // 🔥 mark latest valid bead
-                    latestBead = dot;
-                }
-
-                container.appendChild(dot);
-            }
-        });
-
-        // =========================
-        // 🔥 APPLY BLINK TO LATEST
-        // =========================
-        requestAnimationFrame(() => {
-            container.scrollLeft = container.scrollWidth;
-
-            // remove old highlights (safety)
-            document.querySelectorAll('.latest-bead')
-                .forEach(el => el.classList.remove('latest-bead'));
-
-            if (latestBead) {
-                latestBead.classList.add('latest-bead');
+                col = [];
             }
         });
     }
