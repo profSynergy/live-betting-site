@@ -84,6 +84,17 @@
 .wala { background: blue; }
 .draw { background: green; }
 .cancelled { background: gray; }
+
+@keyframes blinkLatest {
+    0%   { transform: scale(1); opacity: 1; box-shadow: 0 0 0px transparent; }
+    50%  { transform: scale(1.3); opacity: 0.6; box-shadow: 0 0 8px rgba(255,255,255,0.8); }
+    100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0px transparent; }
+}
+
+.latest-bead {
+    animation: blinkLatest 0.8s infinite;
+    z-index: 2;
+}
 /* 🔥 GLOBAL FIX */
 body, html {
     margin: 0;
@@ -1131,9 +1142,11 @@ body, html {
         }
 
         // =========================
-        // RENDER
+        // 🔥 TRACK LATEST ELEMENT
         // =========================
-        columns.forEach(col => {
+        let latestBead = null;
+
+        columns.forEach((col, colIndex) => {
             for (let i = 0; i < MAX_ROWS; i++){
                 const dot = document.createElement('div');
 
@@ -1163,6 +1176,9 @@ body, html {
                             dot.style.borderColor = 'gray';
                             break;
                     }
+
+                    // 🔥 mark latest valid bead
+                    latestBead = dot;
                 }
 
                 container.appendChild(dot);
@@ -1170,10 +1186,18 @@ body, html {
         });
 
         // =========================
-        // 🔥 AUTO SCROLL TO LATEST
+        // 🔥 APPLY BLINK TO LATEST
         // =========================
         requestAnimationFrame(() => {
             container.scrollLeft = container.scrollWidth;
+
+            // remove old highlights (safety)
+            document.querySelectorAll('.latest-bead')
+                .forEach(el => el.classList.remove('latest-bead'));
+
+            if (latestBead) {
+                latestBead.classList.add('latest-bead');
+            }
         });
     }
     async function loadBeads() {
