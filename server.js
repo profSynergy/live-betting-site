@@ -233,6 +233,13 @@ const settleGame = async (gameId, winner) => {
       SET is_resolved = true
       WHERE game_id = $1 AND is_resolved = false
     `, [gameId]);
+    
+    // ✅ mark commissions as settled
+    await client.query(`
+      UPDATE commission_transactions
+      SET status = 0
+      WHERE game_id = $1
+    `, [gameId]);
 
     await client.query('COMMIT');
 
@@ -1874,16 +1881,20 @@ app.get('/api/my-commission-transactions', isAuthenticated, async (req, res) => 
     const params = [];
     let i = 1;
 
-    // ✅ ONLY filter by user if NOT super admin
+    // ==========================
+    // 🔥 BASE FILTER (NOW INCLUDES STATUS)
+    // ==========================
     if (role !== -1) {
-      query += ` WHERE ct.user_id = $${i}`;
+      query += ` WHERE ct.user_id = $${i} AND ct.status = 0`;
       params.push(userId);
       i++;
     } else {
-      query += ` WHERE 1=1`; // dummy condition for easier appending
+      query += ` WHERE ct.status = 0`;
     }
 
+    // ==========================
     // 🔍 SEARCH
+    // ==========================
     if (search) {
       query += ` AND (
         u.username ILIKE $${i} 
@@ -1893,7 +1904,9 @@ app.get('/api/my-commission-transactions', isAuthenticated, async (req, res) => 
       i++;
     }
 
+    // ==========================
     // 📅 DATE FILTERS
+    // ==========================
     if (from) {
       query += ` AND ct.created_at >= $${i}`;
       params.push(from);

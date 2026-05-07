@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Players Management - SWC888</title>
+    <title>Players Management</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -102,13 +102,43 @@
             </div>
         </div>
         <footer>
-            © 2024 SWC888. All rights reserved.
+            © 2024 <span class="website-name"></span>. All rights reserved.
         </footer>
 
     </div>
 
     <script>
-        
+        // =========================
+        // Global App Config
+        // =========================
+        let APP_CONFIG = {
+            websiteName: "Website",
+            websiteUrl: window.location.origin
+        };
+
+        // =========================
+        // Load Config
+        // =========================
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+
+                APP_CONFIG = data;
+
+                // Update page title
+                document.title = `Players Management - ${data.websiteName}`;
+
+                // Update website placeholders
+                document.querySelectorAll('.website-name')
+                    .forEach(el => {
+                        el.textContent = data.websiteName;
+                    });
+
+            } catch (err) {
+                console.error('Failed to load config:', err);
+            }
+        }
         function formatNumber(amount) {
             return new Intl.NumberFormat('en-PH', {
                 minimumFractionDigits: 2,
@@ -516,8 +546,17 @@
                 showSnackbar("Logout failed", "error");
             }
         }
-        // Call after session check
-        checkSession();
+        // =========================
+        // Init
+        // =========================
+        async function init() {
+            await loadConfig();
+            await checkSession();
+        }
+
+        init();
+
+        // background refresh tasks
         setInterval(loadWithdrawCount, 10000);
         setInterval(loadPendingCount, 10000);
     </script>
