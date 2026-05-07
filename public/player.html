@@ -42,36 +42,69 @@
 .chips { display:flex; gap:5px; overflow-x:auto; margin-top:10px; }
 .chips button { padding:6px 10px; font-size:12px; }
 
+/* =========================
+   HISTORY BEADS
+========================= */
 #beads {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 30px);
-  gap: 5px;
-  margin-top: 10px;
-  max-height: 250px;
-  overflow-y: auto;   /* 🔥 change this */
-  overflow-x: hidden; /* 🔥 prevent sideways mess */
+    display: grid;
+
+    /* 🔥 horizontal growth */
+    grid-auto-flow: column;
+
+    /* 6 rows vertically */
+    grid-template-rows: repeat(6, 30px);
+
+    gap: 5px;
+
+    /* 🔥 horizontal scroll */
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    max-width: 100%;
+
+    padding: 8px;
+    background: #0f172a;
+    border-radius: 6px;
+
+    justify-content: start;
+    align-content: start;
+
+    box-sizing: border-box;
 }
 
+/* bead circles */
 .bead {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: white;
-  text-align: center;
-  line-height: 30px;
-  font-size: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    color: white;
+    text-align: center;
+    line-height: 30px;
+    font-size: 12px;
+    flex-shrink: 0;
 }
+
+/* =========================
+   BEAD PLATE
+========================= */
 #beadPlate {
     display: grid;
-    grid-auto-flow: column; /* columns grow horizontally */
-    grid-template-rows: repeat(6, 14px); /* 6 rows */
+
+    /* 🔥 grow horizontally */
+    grid-auto-flow: column;
+
+    /* 6 rows */
+    grid-template-rows: repeat(6, 14px);
+
     gap: 4px;
 
-    justify-content: start; /* align left */
+    justify-content: start;
     align-content: start;
 
     max-width: 100%;
-    overflow-x: auto;   /* ✅ horizontal scroll */
+
+    /* 🔥 horizontal scroll */
+    overflow-x: auto;
     overflow-y: hidden;
 
     padding: 6px;
@@ -80,10 +113,18 @@
 
     box-sizing: border-box;
 }
-.meron { background: red; }
-.wala { background: blue; }
-.draw { background: green; }
-.cancelled { background: gray; }
+
+/* optional prettier scrollbar */
+#beads::-webkit-scrollbar,
+#beadPlate::-webkit-scrollbar {
+    height: 6px;
+}
+
+#beads::-webkit-scrollbar-thumb,
+#beadPlate::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 10px;
+}
 /* 🔥 GLOBAL FIX */
 body, html {
     margin: 0;
@@ -1204,18 +1245,19 @@ body, html {
         const container = document.getElementById('beads');
         container.innerHTML = '';
 
-        let number = 1;
-
         history.forEach((item) => {
+
             const bead = document.createElement('div');
 
             bead.className = 'bead ' + item.winner.toLowerCase();
 
-            // ✅ USE ACTUAL FIGHT NUMBER
             bead.innerText = item.fight_number;
 
             container.appendChild(bead);
         });
+
+        // ✅ AUTO SCROLL TO LATEST
+        container.scrollLeft = container.scrollWidth;
     }
     function updateControls(gameStatus, streamEnabled){
         const startBtn = document.getElementById('btnStart');
