@@ -29,7 +29,12 @@ const http = require('http');
 const server = http.createServer(app);
 const superadminRoutes = require('./routes/superadmin');
 
-
+app.get('/api/config', (req, res) => {
+    res.json({
+        websiteName: process.env.WEBSITE_NAME,
+        websiteUrl: process.env.WEBSITE_URL
+    });
+});
 
 initWebSocket(server);
 const settleGame = async (gameId, winner) => {
