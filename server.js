@@ -1803,7 +1803,7 @@ app.get('/api/game-history', async (req, res) => {
             JOIN active_event ae
                 ON g.event_name = ae.event_name
             WHERE g.winner IS NOT NULL
-            ORDER BY g.id ASC LIMIT 5
+            ORDER BY g.id DESC
         `);
 
         res.json(result.rows);
