@@ -1151,13 +1151,16 @@ body, html {
         let lastWinner = null;
 
         history.forEach(game => {
+
             const winner = game.winner;
 
-            // 🎯 Ignore DRAW & CANCELLED for column switching
-            const isNeutral = (winner === 'DRAW' || winner === 'CANCELLED');
+            // DRAW/CANCELLED do not affect streak logic
+            const isNeutral =
+                winner === 'DRAW' ||
+                winner === 'CANCELLED';
 
-            // 👉 Only MERON/WALA affect column logic
-            if (!isNeutral) {
+            if (!isNeutral){
+
                 if (
                     winner !== lastWinner ||
                     currentCol.length >= MAX_ROWS
@@ -1165,13 +1168,13 @@ body, html {
                     if(currentCol.length){
                         columns.push(currentCol);
                     }
+
                     currentCol = [];
                 }
 
                 lastWinner = winner;
             }
 
-            // 👉 Always push (so DRAW/CANCELLED still show)
             currentCol.push(winner);
         });
 
@@ -1179,41 +1182,45 @@ body, html {
             columns.push(currentCol);
         }
 
-        // 🔥 RENDER GRID (column-based)
-        /*container.style.display = 'grid';
-        container.style.gridAutoFlow = 'column';
-        container.style.gridTemplateRows = `repeat(${MAX_ROWS}, 14px)`;
-        container.style.background = '#0f172a';
-        container.style.padding = '6px';
-        container.style.borderRadius = '6px';
-        container.style.gap = '4px';*/
-
+        // 🔥 RENDER
         columns.forEach(col => {
-            for(let i=0; i<MAX_ROWS; i++){
+
+            for(let i = 0; i < MAX_ROWS; i++){
+
                 const dot = document.createElement('div');
 
-                const size = window.innerWidth <= 768 ? 10 : 12;
+                const size =
+                    window.innerWidth <= 768 ? 10 : 12;
+
                 dot.style.width = size + 'px';
                 dot.style.height = size + 'px';
                 dot.style.borderRadius = '50%';
                 dot.style.border = '2px solid transparent';
                 dot.style.background = 'transparent';
+                dot.style.boxSizing = 'border-box';
 
                 const result = col[i];
 
                 if(!result){
+
                     dot.style.visibility = 'hidden';
+
                 } else {
+
                     switch(result){
+
                         case 'MERON':
                             dot.style.borderColor = 'red';
                             break;
+
                         case 'WALA':
                             dot.style.borderColor = 'blue';
                             break;
+
                         case 'DRAW':
                             dot.style.borderColor = 'green';
                             break;
+
                         case 'CANCELLED':
                             dot.style.borderColor = 'gray';
                             break;
@@ -1221,10 +1228,15 @@ body, html {
                 }
 
                 container.appendChild(dot);
-                
             }
-            const plate = document.getElementById('beadPlate');
-                plate.scrollLeft = plate.scrollWidth;
+        });
+
+        // ✅ SCROLL AFTER DOM RENDER
+        requestAnimationFrame(() => {
+            container.scrollTo({
+                left: container.scrollWidth,
+                behavior: 'smooth'
+            });
         });
     }
     async function loadBeads() {
