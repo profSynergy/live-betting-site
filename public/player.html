@@ -1111,44 +1111,30 @@ body, html {
 
         history.forEach(game => {
             const winner = game.winner;
-
-            // 🎯 Ignore DRAW & CANCELLED for column switching
             const isNeutral = (winner === 'DRAW' || winner === 'CANCELLED');
 
-            // 👉 Only MERON/WALA affect column logic
             if (!isNeutral) {
-                if (
-                    winner !== lastWinner ||
-                    currentCol.length >= MAX_ROWS
-                ){
-                    if(currentCol.length){
+                if (winner !== lastWinner || currentCol.length >= MAX_ROWS){
+                    if (currentCol.length){
                         columns.push(currentCol);
                     }
                     currentCol = [];
                 }
-
                 lastWinner = winner;
             }
 
-            // 👉 Always push (so DRAW/CANCELLED still show)
             currentCol.push(winner);
         });
 
-        if(currentCol.length){
+        if (currentCol.length){
             columns.push(currentCol);
         }
 
-        // 🔥 RENDER GRID (column-based)
-        /*container.style.display = 'grid';
-        container.style.gridAutoFlow = 'column';
-        container.style.gridTemplateRows = `repeat(${MAX_ROWS}, 14px)`;
-        container.style.background = '#0f172a';
-        container.style.padding = '6px';
-        container.style.borderRadius = '6px';
-        container.style.gap = '4px';*/
-
+        // =========================
+        // RENDER
+        // =========================
         columns.forEach(col => {
-            for(let i=0; i<MAX_ROWS; i++){
+            for (let i = 0; i < MAX_ROWS; i++){
                 const dot = document.createElement('div');
 
                 const size = window.innerWidth <= 768 ? 10 : 12;
@@ -1160,7 +1146,7 @@ body, html {
 
                 const result = col[i];
 
-                if(!result){
+                if (!result){
                     dot.style.visibility = 'hidden';
                 } else {
                     switch(result){
@@ -1180,10 +1166,14 @@ body, html {
                 }
 
                 container.appendChild(dot);
-                
             }
-            const plate = document.getElementById('beadPlate');
-                plate.scrollLeft = plate.scrollWidth;
+        });
+
+        // =========================
+        // 🔥 AUTO SCROLL TO LATEST
+        // =========================
+        requestAnimationFrame(() => {
+            container.scrollLeft = container.scrollWidth;
         });
     }
     async function loadBeads() {
