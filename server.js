@@ -1794,15 +1794,20 @@ app.post('/api/declarator/set-video', isAuthenticated, async (req, res) => {
 app.get('/api/game-history', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT g.winner, g.fight_number
+            SELECT 
+                g.winner,
+                g.fight_number,
+                g.id,
+                g.event_name
             FROM games g
             JOIN active_event ae
                 ON g.event_name = ae.event_name
             WHERE g.winner IS NOT NULL
-            ORDER BY g.fight_number ASC
+            ORDER BY g.fight_number ASC, g.id ASC
         `);
 
         res.json(result.rows);
+
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to fetch history" });

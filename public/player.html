@@ -1111,7 +1111,8 @@ body, html {
             const data = await res.json();
 
             renderBeadPlate(data);
-        }catch(err){
+
+        } catch(err){
             console.error(err);
         }
     }
@@ -1153,6 +1154,9 @@ body, html {
 
         const MAX_ROWS = 6;
 
+        // 🔥 ensure correct order even if backend changes
+        history.sort((a, b) => a.fight_number - b.fight_number);
+
         let columns = [];
         let currentCol = [];
         let lastWinner = null;
@@ -1171,19 +1175,19 @@ body, html {
                 lastWinner = winner;
             }
 
-            currentCol.push(winner);
+            currentCol.push({
+                winner,
+                fight_number: game.fight_number
+            });
         });
 
         if (currentCol.length){
             columns.push(currentCol);
         }
 
-        // =========================
-        // 🔥 TRACK LATEST ELEMENT
-        // =========================
         let latestBead = null;
 
-        columns.forEach((col, colIndex) => {
+        columns.forEach(col => {
             for (let i = 0; i < MAX_ROWS; i++){
                 const dot = document.createElement('div');
 
@@ -1199,7 +1203,7 @@ body, html {
                 if (!result){
                     dot.style.visibility = 'hidden';
                 } else {
-                    switch(result){
+                    switch(result.winner){
                         case 'MERON':
                             dot.style.borderColor = 'red';
                             break;
@@ -1214,7 +1218,7 @@ body, html {
                             break;
                     }
 
-                    // 🔥 mark latest valid bead
+                    // 🔥 track actual latest fight
                     latestBead = dot;
                 }
 
@@ -1222,13 +1226,9 @@ body, html {
             }
         });
 
-        // =========================
-        // 🔥 APPLY BLINK TO LATEST
-        // =========================
         requestAnimationFrame(() => {
             container.scrollLeft = container.scrollWidth;
 
-            // remove old highlights (safety)
             document.querySelectorAll('.latest-bead')
                 .forEach(el => el.classList.remove('latest-bead'));
 
