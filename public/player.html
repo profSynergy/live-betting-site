@@ -4,7 +4,7 @@
 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Player - SWC888</title>
+<title>Player</title>
 <link rel="stylesheet" href="style.css">
 
 <style>
@@ -333,7 +333,7 @@ body, html {
         </div>
     </div> <!-- content -->
     <footer>
-        © 2024 SWC888. All rights reserved.
+        © 2024 <span class="website-name"></span>. All rights reserved.
     </footer>
 </div> <!-- main -->
 
@@ -401,6 +401,37 @@ body, html {
             console.error("WS Error:", err);
             ws.close();
         };
+    }
+    // =========================
+    // Global App Config
+    // =========================
+    let APP_CONFIG = {
+        websiteName: "Website",
+        websiteUrl: window.location.origin
+    };
+
+    // =========================
+    // Load Config
+    // =========================
+    async function loadConfig() {
+        try {
+            const res = await fetch('/api/config');
+            const data = await res.json();
+
+            APP_CONFIG = data;
+
+            // Update page title
+            document.title = `Player - ${data.websiteName}`;
+
+            // Update website placeholders
+            document.querySelectorAll('.website-name')
+                .forEach(el => {
+                    el.textContent = data.websiteName;
+                });
+
+        } catch (err) {
+            console.error('Failed to load config:', err);
+        }
     }
     let heartbeatInterval = null;
 
@@ -1277,14 +1308,22 @@ body, html {
         document.getElementById('winWala').textContent = 0;
         document.getElementById('winDraw').textContent = 0;
     }
-    checkSession('player');   
-    fetchGame();
-    checkPlayerBalance(); // ✅ initial load
-    //setInterval(fetchActiveEvent, 3000);
-    fetchActiveEvent();
-    fetchHistory();
-    loadBeads();
-    initWebSocket();
+    // =========================
+    // Init
+    // =========================
+    async function init() {
+        await loadConfig();
+
+        checkSession('player');   
+        fetchGame();
+        checkPlayerBalance();
+        fetchActiveEvent();
+        fetchHistory();
+        loadBeads();
+        initWebSocket();
+    }
+
+    init();
     // 🔥 KEEP CONNECTION ALIVE (PREVENT DISCONNECT)
    
 </script>
