@@ -1114,6 +1114,38 @@ body, html {
             console.error(err);
         }
     }
+    
+    async function loadBeads() {
+        const res = await fetch('/api/beads-history');
+        const data = await res.json();
+
+        const history = data.history;
+        const counts = data.counts;
+
+        // ✅ SHOW TOTALS
+        document.getElementById('totals').innerHTML = `
+            MERON: ${counts.MERON} |
+            WALA: ${counts.WALA} |
+            DRAW: ${counts.DRAW} |
+            CANCELLED: ${counts.CANCELLED}
+        `;
+
+        const container = document.getElementById('beads');
+        container.innerHTML = '';
+
+        let number = 1;
+
+        history.forEach((item) => {
+            const bead = document.createElement('div');
+
+            bead.className = 'bead ' + item.winner.toLowerCase();
+
+            // ✅ USE ACTUAL FIGHT NUMBER
+            bead.innerText = item.fight_number;
+
+            container.appendChild(bead);
+        });
+    }
     function renderBeadPlate(history){
         const container = document.getElementById('beadPlate');
         container.innerHTML = '';
@@ -1202,37 +1234,6 @@ body, html {
             if (latestBead) {
                 latestBead.classList.add('latest-bead');
             }
-        });
-    }
-    async function loadBeads() {
-        const res = await fetch('/api/beads-history');
-        const data = await res.json();
-
-        const history = data.history;
-        const counts = data.counts;
-
-        // ✅ SHOW TOTALS
-        document.getElementById('totals').innerHTML = `
-            MERON: ${counts.MERON} |
-            WALA: ${counts.WALA} |
-            DRAW: ${counts.DRAW} |
-            CANCELLED: ${counts.CANCELLED}
-        `;
-
-        const container = document.getElementById('beads');
-        container.innerHTML = '';
-
-        let number = 1;
-
-        history.forEach((item) => {
-            const bead = document.createElement('div');
-
-            bead.className = 'bead ' + item.winner.toLowerCase();
-
-            // ✅ USE ACTUAL FIGHT NUMBER
-            bead.innerText = item.fight_number;
-
-            container.appendChild(bead);
         });
     }
     function updateControls(gameStatus, streamEnabled){
