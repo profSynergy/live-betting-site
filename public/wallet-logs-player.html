@@ -35,7 +35,21 @@
 
         <div class="content">
             <h2>Wallet Logs</h2>
+            <div class="filters">
 
+                <input type="text"
+                    id="search"
+                    placeholder="Search description or type">
+
+                <input type="date" id="from">
+
+                <input type="date" id="to">
+
+                <button onclick="loadWalletLogs()">
+                    Search
+                </button>
+
+            </div>
             <div class="table-wrapper">
                 <table class="styled-table" id="walletTable">
                     <thead>
@@ -51,7 +65,7 @@
                 </table>
             </div>
         </div>
-        // MODAL FOR WITHDRAWAL REQUEST
+        <!-- MODAL FOR WITHDRAWAL REQUEST -->
         <div id="withdrawModal" class="modal">
             <div class="modal-content">
                 <h3>Withdrawal Request</h3>
@@ -59,7 +73,7 @@
                 <input type="number" id="withdrawAmount" placeholder="Enter points" />
 
                 <div style="margin-top:10px;">
-                    <button onclick="submitWithdraw()">Submit</button>
+                    <button id="withdrawBtn" onclick="submitWithdraw()">Submit</button>
                     <button onclick="closeWithdrawModal()">Cancel</button>
                 </div>
             </div>
@@ -86,7 +100,7 @@
 
                 document.querySelectorAll('.username')
                     .forEach(el => el.textContent = data.username);
-
+                window.playerBalance = Number(data.points || 0);
             } catch (err) {
                 console.error(err);
                 window.location.href = '/';
@@ -134,8 +148,29 @@
         });
 
         async function loadWalletLogs() {
+
             try {
-                const res = await fetch('/api/my-wallet-transactions', {
+
+                const search = (document.getElementById('search')?.value || '').trim();
+                const from = document.getElementById('from')?.value || '';
+                const to = document.getElementById('to')?.value || '';
+
+                const params = new URLSearchParams({
+                    search,
+                    from,
+                    to,
+                    limit: 100
+                });
+
+                const tbody = document.querySelector('#walletTable tbody');
+
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5">Loading...</td>
+                    </tr>
+                `;
+
+                const res = await fetch(`/api/my-wallet-transactions?${params}`, {
                     credentials: 'include'
                 });
 
@@ -145,24 +180,55 @@
                 }
 
                 const data = await res.json();
-                const tbody = document.querySelector('#walletTable tbody');
+
                 tbody.innerHTML = '';
 
+                if (!data.length) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5">No wallet logs found</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
                 data.forEach(tx => {
+
                     const row = document.createElement('tr');
 
-                    const typeIcon = tx.type === 'credit' ? '↑' : '↓';
-                    const typeColor = tx.type === 'credit' ? '#22c55e' : '#ef4444';
+                    const isCredit = tx.type === 'credit';
+
+                    const typeIcon = isCredit ? '▲' : '▼';
+
+                    const typeColor = isCredit
+                        ? '#22c55e'
+                        : '#ef4444';
 
                     row.innerHTML = `
-                        <td>${new Date(tx.created_at).toLocaleString()}</td>
-                        <td style="color: ${typeColor}; font-weight: bold;">
+                        <td>
+                            ${new Date(tx.created_at).toLocaleString()}
+                        </td>
+
+                        <td style="
+                            color:${typeColor};
+                            font-weight:bold;
+                        ">
                             ${typeIcon} ${tx.type}
                         </td>
-                        <td>${formatMoney(tx.amount)}</td>
-                        <td>${formatMoney(tx.balance_after)}</td>
-                        <td>${formatDescription(tx.description)}</td>
+
+                        <td>
+                            ${formatMoney(tx.amount)}
+                        </td>
+
+                        <td>
+                            ${formatMoney(tx.balance_after)}
+                        </td>
+
+                        <td>
+                            ${formatDescription(tx.description)}
+                        </td>
                     `;
+
                     tbody.appendChild(row);
                 });
 
@@ -181,8 +247,8 @@
 
         async function submitWithdraw(){
             const amount = Number(document.getElementById('withdrawAmount').value);
-            const balance = Number(document.getElementById('balance').textContent);
-
+            const balance = Number(window.playerBalance || 0);
+            
             if (!amount || amount <= 0) {
                 return showSnackbar("Enter valid amount", "warning");
             }
@@ -204,7 +270,7 @@
                 if (!res.ok) {
                     throw new Error(data.error || "Request failed");
                 }
-
+                window.playerBalance -= amount;
                 showSnackbar("Withdrawal request submitted!");
                 closeWithdrawModal();
 
@@ -256,6 +322,14 @@
 
             return desc; // fallback
         }
+        document.getElementById('search')
+            ?.addEventListener('input', loadWalletLogs);
+
+        document.getElementById('from')
+            ?.addEventListener('change', loadWalletLogs);
+
+        document.getElementById('to')
+            ?.addEventListener('change', loadWalletLogs);
         checkSession();
         loadWalletLogs();
     </script>
