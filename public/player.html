@@ -42,69 +42,36 @@
 .chips { display:flex; gap:5px; overflow-x:auto; margin-top:10px; }
 .chips button { padding:6px 10px; font-size:12px; }
 
-/* =========================
-   HISTORY BEADS
-========================= */
 #beads {
-    display: grid;
-
-    /* 🔥 horizontal growth */
-    grid-auto-flow: column;
-
-    /* 6 rows vertically */
-    grid-template-rows: repeat(6, 30px);
-
-    gap: 5px;
-
-    /* 🔥 horizontal scroll */
-    overflow-x: auto;
-    overflow-y: hidden;
-
-    max-width: 100%;
-
-    padding: 8px;
-    background: #0f172a;
-    border-radius: 6px;
-
-    justify-content: start;
-    align-content: start;
-
-    box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 30px);
+  gap: 5px;
+  margin-top: 10px;
+  max-height: 250px;
+  overflow-y: auto;   /* 🔥 change this */
+  overflow-x: hidden; /* 🔥 prevent sideways mess */
 }
 
-/* bead circles */
 .bead {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    color: white;
-    text-align: center;
-    line-height: 30px;
-    font-size: 12px;
-    flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: white;
+  text-align: center;
+  line-height: 30px;
+  font-size: 12px;
 }
-
-/* =========================
-   BEAD PLATE
-========================= */
 #beadPlate {
     display: grid;
-
-    /* 🔥 grow horizontally */
-    grid-auto-flow: column;
-
-    /* 6 rows */
-    grid-template-rows: repeat(6, 14px);
-
+    grid-auto-flow: column; /* columns grow horizontally */
+    grid-template-rows: repeat(6, 14px); /* 6 rows */
     gap: 4px;
 
-    justify-content: start;
+    justify-content: start; /* align left */
     align-content: start;
 
     max-width: 100%;
-
-    /* 🔥 horizontal scroll */
-    overflow-x: auto;
+    overflow-x: auto;   /* ✅ horizontal scroll */
     overflow-y: hidden;
 
     padding: 6px;
@@ -113,18 +80,10 @@
 
     box-sizing: border-box;
 }
-
-/* optional prettier scrollbar */
-#beads::-webkit-scrollbar,
-#beadPlate::-webkit-scrollbar {
-    height: 6px;
-}
-
-#beads::-webkit-scrollbar-thumb,
-#beadPlate::-webkit-scrollbar-thumb {
-    background: #475569;
-    border-radius: 10px;
-}
+.meron { background: red; }
+.wala { background: blue; }
+.draw { background: green; }
+.cancelled { background: gray; }
 /* 🔥 GLOBAL FIX */
 body, html {
     margin: 0;
@@ -1141,104 +1100,92 @@ body, html {
         }
     }
     function renderBeadPlate(history){
-    const container = document.getElementById('beadPlate');
-    container.innerHTML = '';
+        const container = document.getElementById('beadPlate');
+        container.innerHTML = '';
 
-    const MAX_ROWS = 6;
+        const MAX_ROWS = 6;
 
-    let columns = [];
-    let currentCol = [];
-    let lastWinner = null;
+        let columns = [];
+        let currentCol = [];
+        let lastWinner = null;
 
-    history.forEach(game => {
+        history.forEach(game => {
+            const winner = game.winner;
 
-        const winner = game.winner;
+            // 🎯 Ignore DRAW & CANCELLED for column switching
+            const isNeutral = (winner === 'DRAW' || winner === 'CANCELLED');
 
-        // DRAW/CANCELLED do not affect streak logic
-        const isNeutral =
-            winner === 'DRAW' ||
-            winner === 'CANCELLED';
-
-        if (!isNeutral){
-
-            if (
-                winner !== lastWinner ||
-                currentCol.length >= MAX_ROWS
-            ){
-                if(currentCol.length){
-                    columns.push(currentCol);
+            // 👉 Only MERON/WALA affect column logic
+            if (!isNeutral) {
+                if (
+                    winner !== lastWinner ||
+                    currentCol.length >= MAX_ROWS
+                ){
+                    if(currentCol.length){
+                        columns.push(currentCol);
+                    }
+                    currentCol = [];
                 }
 
-                currentCol = [];
+                lastWinner = winner;
             }
 
-            lastWinner = winner;
-        }
-
-        currentCol.push(winner);
-    });
-
-    if(currentCol.length){
-        columns.push(currentCol);
-    }
-
-    // 🔥 RENDER
-    columns.forEach(col => {
-
-        for(let i = 0; i < MAX_ROWS; i++){
-
-            const dot = document.createElement('div');
-
-            const size =
-                window.innerWidth <= 768 ? 10 : 12;
-
-            dot.style.width = size + 'px';
-            dot.style.height = size + 'px';
-            dot.style.borderRadius = '50%';
-            dot.style.border = '2px solid transparent';
-            dot.style.background = 'transparent';
-            dot.style.boxSizing = 'border-box';
-
-            const result = col[i];
-
-            if(!result){
-
-                dot.style.visibility = 'hidden';
-
-            } else {
-
-                switch(result){
-
-                    case 'MERON':
-                        dot.style.borderColor = 'red';
-                        break;
-
-                    case 'WALA':
-                        dot.style.borderColor = 'blue';
-                        break;
-
-                    case 'DRAW':
-                        dot.style.borderColor = 'green';
-                        break;
-
-                    case 'CANCELLED':
-                        dot.style.borderColor = 'gray';
-                        break;
-                }
-            }
-
-            container.appendChild(dot);
-        }
-    });
-
-    // ✅ SCROLL AFTER DOM RENDER
-    requestAnimationFrame(() => {
-        container.scrollTo({
-            left: container.scrollWidth,
-            behavior: 'smooth'
+            // 👉 Always push (so DRAW/CANCELLED still show)
+            currentCol.push(winner);
         });
-    });
-}
+
+        if(currentCol.length){
+            columns.push(currentCol);
+        }
+
+        // 🔥 RENDER GRID (column-based)
+        /*container.style.display = 'grid';
+        container.style.gridAutoFlow = 'column';
+        container.style.gridTemplateRows = `repeat(${MAX_ROWS}, 14px)`;
+        container.style.background = '#0f172a';
+        container.style.padding = '6px';
+        container.style.borderRadius = '6px';
+        container.style.gap = '4px';*/
+
+        columns.forEach(col => {
+            for(let i=0; i<MAX_ROWS; i++){
+                const dot = document.createElement('div');
+
+                const size = window.innerWidth <= 768 ? 10 : 12;
+                dot.style.width = size + 'px';
+                dot.style.height = size + 'px';
+                dot.style.borderRadius = '50%';
+                dot.style.border = '2px solid transparent';
+                dot.style.background = 'transparent';
+
+                const result = col[i];
+
+                if(!result){
+                    dot.style.visibility = 'hidden';
+                } else {
+                    switch(result){
+                        case 'MERON':
+                            dot.style.borderColor = 'red';
+                            break;
+                        case 'WALA':
+                            dot.style.borderColor = 'blue';
+                            break;
+                        case 'DRAW':
+                            dot.style.borderColor = 'green';
+                            break;
+                        case 'CANCELLED':
+                            dot.style.borderColor = 'gray';
+                            break;
+                    }
+                }
+
+                container.appendChild(dot);
+                
+            }
+            const plate = document.getElementById('beadPlate');
+                plate.scrollLeft = plate.scrollWidth;
+        });
+    }
     async function loadBeads() {
         const res = await fetch('/api/beads-history');
         const data = await res.json();
@@ -1257,19 +1204,18 @@ body, html {
         const container = document.getElementById('beads');
         container.innerHTML = '';
 
-        history.forEach((item) => {
+        let number = 1;
 
+        history.forEach((item) => {
             const bead = document.createElement('div');
 
             bead.className = 'bead ' + item.winner.toLowerCase();
 
+            // ✅ USE ACTUAL FIGHT NUMBER
             bead.innerText = item.fight_number;
 
             container.appendChild(bead);
         });
-
-        // ✅ AUTO SCROLL TO LATEST
-        container.scrollLeft = container.scrollWidth;
     }
     function updateControls(gameStatus, streamEnabled){
         const startBtn = document.getElementById('btnStart');
