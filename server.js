@@ -1820,21 +1820,27 @@ app.get('/api/beads-history', async (req, res) => {
       JOIN active_event ae
         ON g.event_name = ae.event_name
       WHERE g.winner IS NOT NULL
-      ORDER BY g.id ASC
+      ORDER BY g.id DESC
       LIMIT 200
     `);
 
-    const history = result.rows.map(r => ({
+    // 🔥 Normalize order for frontend (oldest → newest)
+    const history = result.rows.reverse().map(r => ({
       winner: r.winner,
       fight_number: r.fight_number
     }));
 
-    const counts = {
-      MERON: history.filter(x => x === 'MERON').length,
-      WALA: history.filter(x => x === 'WALA').length,
-      DRAW: history.filter(x => x === 'DRAW').length,
-      CANCELLED: history.filter(x => x === 'CANCELLED').length
-    };
+    // ✅ Correct counting (fix object issue)
+    const counts = history.reduce((acc, cur) => {
+      const key = cur.winner;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {
+      MERON: 0,
+      WALA: 0,
+      DRAW: 0,
+      CANCELLED: 0
+    });
 
     res.json({
       history,
@@ -1842,7 +1848,7 @@ app.get('/api/beads-history', async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Beads history error:", err);
     res.status(500).json({ error: "Failed to fetch beads history" });
   }
 });
