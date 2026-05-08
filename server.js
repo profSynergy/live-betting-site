@@ -508,9 +508,6 @@ app.use(express.static('public', {
 
 
 
-
-
-
 // ==========================
 // PENDING COUNT API
 // ==========================

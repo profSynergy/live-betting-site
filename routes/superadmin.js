@@ -40,9 +40,33 @@ function mapStatus(rows) {
 // Route: Superadmin Dashboard
 // =========================
 router.get('/dashboard', isSuperAdmin, async (req, res) => {
+    const scope = req.query.scope || 'event';
     console.log("🔥 SUPERADMIN DASHBOARD HIT");
 
     try {
+        // =========================
+        // SCOPE FILTER (EVENT / MONTH / TOTAL)
+        // =========================
+        let dateFilter = "";
+
+        // EVENT = current game only
+        if (scope === 'event') {
+            dateFilter = `
+                AND g.id = (SELECT id FROM games ORDER BY created_at DESC LIMIT 1)
+            `;
+        }
+
+        // MONTH = current month
+        else if (scope === 'month') {
+            dateFilter = `
+                AND g.created_at >= date_trunc('month', NOW())
+            `;
+        }
+
+        // TOTAL = no filter
+        else {
+            dateFilter = "";
+        }
         // =========================
         // TOTAL COUNTS
         // =========================
@@ -87,7 +111,10 @@ router.get('/dashboard', isSuperAdmin, async (req, res) => {
                 COALESCE(SUM(CASE 
                     WHEN type = 'credit' AND description ILIKE 'Win -%' 
                     THEN amount ELSE 0 END), 0) AS total_won
-            FROM wallet_transactions
+            FROM wallet_transactions wt
+            LEFT JOIN games g ON g.id = wt.reference_id
+            WHERE 1=1
+            ${dateFilter}
         `);
 
         // =========================
@@ -104,7 +131,7 @@ router.get('/dashboard', isSuperAdmin, async (req, res) => {
                     THEN amount ELSE 0 END), 0) AS withdraw
             FROM wallet_transactions
         `);
-
+        
         // =========================
         // MAP STATUS
         // =========================
