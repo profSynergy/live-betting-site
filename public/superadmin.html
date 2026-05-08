@@ -43,23 +43,7 @@
         <!-- CONTENT -->
         <div class="content">
             <div id="snackbar"></div>
-                <!-- Summary Filter Buttons -->
-                <div class="summary-filters">
-                    <button class="summary-btn active"
-                            onclick="changeSummary('event', this)">
-                        Current Event
-                    </button>
 
-                    <button class="summary-btn"
-                            onclick="changeSummary('month', this)">
-                        Month Summary
-                    </button>
-
-                    <button class="summary-btn"
-                            onclick="changeSummary('total', this)">
-                        Total Summary
-                    </button>
-                </div>
                 <!-- Dashboard Cards -->
                 <div class="cards-container">
                     <!-- Agent Account Summary -->
@@ -273,9 +257,9 @@
         }
         
         
-        async function loadSuperAdminDashboard(scope = 'event') {
+        async function loadSuperAdminDashboard() {
             try {
-                const res = await fetch(`/api/superadmin/dashboard?scope=${scope}`, {
+                const res = await fetch('/api/superadmin/dashboard', {
                     credentials: 'include'
                 });
 
@@ -384,21 +368,7 @@
                 showSnackbar("Logout failed", "error");
             }
         }
-        let currentSummaryType = 'event';
-
-        async function changeSummary(type, btn) {
-            currentSummaryType = type;
-
-            // remove active state
-            document.querySelectorAll('.summary-btn')
-                .forEach(b => b.classList.remove('active'));
-
-            // activate clicked button
-            btn.classList.add('active');
-
-            // reload dashboard
-            await loadSuperAdminDashboard(type);
-        }
+        
         // =========================
         // INIT
         // =========================
