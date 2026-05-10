@@ -11,30 +11,23 @@
 
     <!-- SIDEBAR (COPY SAME SIDEBAR HERE) -->
     <div class="sidebar" id="sidebar">
-        <h2>Welcome, <span class="username">Agent</span></h2>
+        <h2>Welcome, <span class="username">Super Admin</span></h2>
 
-        <a href="admin.html">🏠 Dashboard</a>
-        <a href="summary.html">📊 Summary Report</a>
-        <a href="wallet-logs.html">📄 Wallet Logs</a>
-        <a href="commission-logs.html">💰 Commission Logs</a>
-        <a href="withdrawal.html">💸 Commission Withdrawals 
-            <span id="withdrawBadge" class="badge blue" style="display:none;">0</span>
-        </a>
-        <a href="archives.html">🗂 Archives</a>
+        <a href="superadmin.html">🏠 Dashboard</a>
+        <a href="wallet-logs-sa.html">📄 Wallet Logs</a>
+        <a href="commission-logs-sa.html">💰 Commission Logs</a>
+        <a href="archives.html">🗂 Game Archives</a>
 
         <div class="category">Downlines</div>
-        <a href="agents.html">👥 Agents</a>
-        <a href="players.html">🧑 Players</a>
-        <a href="pending.html">⏳ Pending Approvals 
-            <span id="pendingBadge" class="badge red" style="display:none;">0</span>
-        </a>
+        <a href="agents-sa.html">👥 Agents</a>
+        <a href="players-sa.html">🧑 Players</a>
 
         <div class="category">Settings</div>
-        <a href="account.html">👥 Account Management</a>
-        <a href="change-password.html">🔑 Change Password</a>
+        <!--<a href="account.html">👥 Account Management</a>-->
+        <a href="change-password-superadmin.html">🔑 Change Password</a>
         <a href="#" onclick="logout()">🚪 Logout</a>
     </div>
-
+    <div id="overlay" class="overlay" onclick="closeSidebar()"></div>
     <!-- MAIN -->
     <div class="main">
 
@@ -100,6 +93,16 @@
 
                 document.querySelectorAll('.username')
                     .forEach(el => el.textContent = data.username);
+
+                // =========================
+                // SHOW ADMIN ONLY ITEMS
+                // =========================
+                if (data.role === '-1') {
+                    document.querySelectorAll('.admin-only')
+                        .forEach(el => {
+                            el.style.display = '';
+                        });
+                }
 
             } catch (err) {
                 console.error(err);
