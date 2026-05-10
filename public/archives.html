@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Archives</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Wallet Logs</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -27,6 +27,7 @@
         <a href="change-password-superadmin.html">🔑 Change Password</a>
         <a href="#" onclick="logout()">🚪 Logout</a>
     </div>
+    <!-- Overlay for mobile -->
     <div id="overlay" class="overlay" onclick="closeSidebar()"></div>
     <!-- MAIN -->
     <div class="main">
@@ -36,12 +37,30 @@
         </div>
 
         <div class="content">
-            <h2>Archives</h2>
-            <p>Coming soon...</p>
+            <h2>Wallet Logs</h2>
+
+            <div class="table-wrapper">
+                <select id="userFilter" onchange="loadWalletLogs()">
+                    <option value="">All Users</option>
+                </select>
+                <table class="styled-table" id="walletTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Balance After</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
 
         <footer>
-            © 2024 <span class="website-name"></span>. All rights reserved.
+            © 2024 <span class="website-name">Website</span>. All rights reserved.
         </footer>
 
     </div>
@@ -66,9 +85,9 @@
                 APP_CONFIG = data;
 
                 // Update page title
-                document.title = `Archives - ${data.websiteName}`;
+                document.title = `Wallet Logs - ${data.websiteName}`;
 
-                // Update website names
+                // Update website name placeholders
                 document.querySelectorAll('.website-name')
                     .forEach(el => {
                         el.textContent = data.websiteName;
@@ -90,53 +109,117 @@
                 }
 
                 const data = await res.json();
-
+                if (data.role !== 'admin') {
+                    const summaryLink = document.getElementById('summaryLink');
+                    if (summaryLink) summaryLink.style.display = 'none';
+                }
                 document.querySelectorAll('.username')
                     .forEach(el => el.textContent = data.username);
-
-                // =========================
-                // SHOW ADMIN ONLY ITEMS
-                // =========================
-                if (data.role === '-1') {
-                    document.querySelectorAll('.admin-only')
-                        .forEach(el => {
-                            el.style.display = '';
-                        });
-                }
 
             } catch (err) {
                 console.error(err);
                 window.location.href = '/';
             }
         }
-
+        function formatMoney(num){
+            return Number(num || 0).toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+       
+        // =========================
+        // Hamburger & overlay
+        // =========================
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('collapsed');
-        }
-        //Code for logout
-        // =========================
-        // Snackbar
-        // =========================
-        function showSnackbar(message, type = "success") {
-            let snackbar = document.getElementById("snackbar");
+            const overlay = document.getElementById('overlay');
 
-            // Create snackbar dynamically if missing
-            if (!snackbar) {
-                snackbar = document.createElement("div");
-                snackbar.id = "snackbar";
-                document.body.appendChild(snackbar);
+            if (window.innerWidth <= 768) {
+                sidebar.classList.toggle('active');
+                overlay.classList.toggle('active'); // show overlay
+            } else {
+                sidebar.classList.toggle('collapsed');
             }
-
-            snackbar.textContent = message;
-            snackbar.className = "";
-            snackbar.classList.add(type);
-            snackbar.classList.add("show");
-
-            setTimeout(() => {
-                snackbar.classList.remove("show");
-            }, 3000);
         }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        // Close sidebar if click outside (mobile)
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+                if (!sidebar.contains(event.target) && !event.target.classList.contains('hamburger')) {
+                    closeSidebar();
+                }
+            }
+        });
+        async function loadWalletLogs() {
+            try {
+                const res = await fetch('/api/my-wallet-transactions', {
+                    credentials: 'include'
+                });
+
+                if (res.status === 401) {
+                    window.location.href = '/';
+                    return;
+                }
+
+                const data = await res.json();
+
+                const tbody = document.querySelector('#walletTable tbody');
+                tbody.innerHTML = '';
+
+                const selectedUser = document.getElementById('userFilter')?.value;
+
+                // ✅ SAFER FILTER (case-insensitive)
+                let filtered = data;
+
+                if (selectedUser) {
+                    filtered = data.filter(tx => 
+                        (tx.username || '').toLowerCase() === selectedUser.toLowerCase()
+                    );
+                }
+
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6">No records found</td></tr>`;
+                    return;
+                }
+
+                filtered.forEach(tx => {
+                    const row = document.createElement('tr');
+
+                    const typeIcon = tx.type === 'credit' ? '↑' : '↓';
+                    const typeColor = tx.type === 'credit' ? 'red' : 'green';
+
+                    row.innerHTML = `
+                        <td>${tx.username || '-'}</td>
+                        <td>${new Date(tx.created_at).toLocaleString()}</td>
+                        <td style="color: ${typeColor}; font-weight: bold;">
+                            ${typeIcon} ${tx.type}
+                        </td>
+                        <td>${formatMoney(tx.amount)}</td>
+                        <td>${formatMoney(tx.balance_after)}</td>
+                        <td>${tx.description}</td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        
+        //Code for logout
         async function logout() {
             try {
                 const res = await fetch('/api/logout', {
@@ -159,12 +242,45 @@
                 showSnackbar("Logout failed", "error");
             }
         }
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/my-wallet-transactions', {
+                    credentials: 'include'
+                });
+
+                const data = await res.json();
+
+                const select = document.getElementById('userFilter');
+
+                // ✅ CLEAR first (avoid duplicates)
+                select.innerHTML = `<option value="">All Users</option>`;
+
+                // ✅ GET UNIQUE USERNAMES
+                const uniqueUsers = [...new Set(data.map(tx => tx.username).filter(Boolean))];
+
+                uniqueUsers.forEach(username => {
+                    const opt = document.createElement('option');
+                    opt.value = username;
+                    opt.textContent = username;
+                    select.appendChild(opt);
+                });
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        // =========================
+        // INIT
+        // =========================
         async function init() {
             await loadConfig();
             await checkSession();
+            await loadUsers();
+            await loadWalletLogs();
         }
 
         init();
+        
     </script>
 
 </body>
