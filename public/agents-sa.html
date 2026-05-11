@@ -39,6 +39,14 @@
             <div class="membership-card">
                 <!-- FILTER -->
                 <div class="filter-bar">
+                     <!-- 🔍 SEARCH BOX -->
+                    <input
+                        type="text"
+                        id="agentSearch"
+                        placeholder="🔍 Search username..."
+                        class="membership-link"
+                        oninput="loadAgents()"
+                    >
                     <select id="roleFilter" onchange="loadAgents()" class="membership-link">
                         
                         <option value="">All Roles</option>
@@ -408,6 +416,7 @@
 
                 const roleFilter = document.getElementById('roleFilter').value;
                 const statusFilter = document.getElementById('statusFilter').value;
+                const search = document.getElementById('agentSearch').value.toLowerCase();
 
                 if (roleFilter) {
                     agents = agents.filter(a => a.role === roleFilter);
@@ -416,7 +425,11 @@
                 if (statusFilter) {
                     agents = agents.filter(a => a.status === statusFilter);
                 }
-
+                if (search) {
+                    agents = agents.filter(a =>
+                        a.username.toLowerCase().includes(search)
+                    );
+                }
                 const table = document.getElementById('agentsTable');
                 table.innerHTML = '';
 
