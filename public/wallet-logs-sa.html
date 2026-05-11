@@ -163,7 +163,7 @@
         });
         async function loadWalletLogs() {
             try {
-                const res = await fetch('/api/my-wallet-transactions', {
+                const res = await fetch('/api/all-wallet-transactions', {
                     credentials: 'include'
                 });
 
@@ -179,13 +179,10 @@
 
                 const selectedUser = document.getElementById('userFilter')?.value;
 
-                // ✅ SAFER FILTER (case-insensitive)
                 let filtered = data;
 
                 if (selectedUser) {
-                    filtered = data.filter(tx => 
-                        (tx.username || '').toLowerCase() === selectedUser.toLowerCase()
-                    );
+                    filtered = data.filter(tx => tx.username === selectedUser);
                 }
 
                 if (filtered.length === 0) {
@@ -244,20 +241,29 @@
         }
         async function loadUsers() {
             try {
-                const res = await fetch('/api/users-list', {
+                const res = await fetch('/api/all-wallet-transactions', {
                     credentials: 'include'
                 });
 
-                const users = await res.json();
+                const data = await res.json();
 
                 const select = document.getElementById('userFilter');
-
                 select.innerHTML = `<option value="">All Users</option>`;
 
-                users.forEach(user => {
+                const seen = new Set();
+
+                data.forEach(tx => {
+                    if (!tx.username) return;
+
+                    const key = tx.username.toLowerCase();
+                    if (seen.has(key)) return;
+
+                    seen.add(key);
+
                     const opt = document.createElement('option');
-                    opt.value = user.username;
-                    opt.textContent = user.username;
+                    opt.value = tx.username;
+                    opt.textContent = tx.username;
+
                     select.appendChild(opt);
                 });
 

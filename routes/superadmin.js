@@ -225,20 +225,39 @@ router.get('/network/:id', isSuperAdmin, async (req, res) => {
             error: 'Failed to load network'
         });
     }
-    router.get('/users-list', async (req, res) => {
-        try {
-            const result = await pool.query(`
-                SELECT id, username, role
-                FROM users
-                WHERE role != 'declarator'
-                ORDER BY username ASC
-            `);
+   
+});
+ router.get('/users-list', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, username, role
+            FROM users
+            WHERE role != 'declarator'
+            ORDER BY username ASC
+        `);
 
-            res.json(result.rows);
-        } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: 'Failed to load users' });
-        }
-    });
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load users' });
+    }
+});
+router.get('/all-wallet-transactions', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT username
+            FROM wallet_transactions
+            UNION
+            SELECT username FROM users
+            WHERE role != 'declarator'
+            ORDER BY username ASC;
+        `);
+
+        res.json(result.rows);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load logs' });
+    }
 });
 module.exports = router;
