@@ -429,7 +429,14 @@
 
                         <td>
                             <select class="action-dropdown"
-                                onchange="handleAgentAction(this, this.value, ${a.id}, ${a.points || 0}, ${a.commission_earnings || 0})">
+                                onchange='handleAgentAction(
+                                    this,
+                                    this.value,
+                                    ${a.id},
+                                    ${JSON.stringify(a.username)},
+                                    ${a.points || 0},
+                                    ${a.commission_earnings || 0}
+                                )'>
 
                                 <option value="">⚙️ Select Action</option>
                                 <option value="load">➕ Load</option>
@@ -585,7 +592,7 @@
         // =========================
         // Handle dropdown actions
         // =========================
-        function handleAgentAction(selectEl, action, userId, points, commission) {
+        function handleAgentAction(selectEl, action, userId, username,points, commission) {
             if (!action) return;
 
             switch(action) {
@@ -602,7 +609,7 @@
                     break;
 
                 case 'network':
-                    openNetwork(userId);
+                    openNetwork(userId, username);
                     break;
 
                 case 'block':
