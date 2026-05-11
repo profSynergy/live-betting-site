@@ -14,7 +14,7 @@ const allowedOrigin = process.env.ALLOWED_ORIGIN;
 const { placeBet } = require('./controllers/game');
 const { startDummyEngine, stopDummyEngine } = require('./services/dummyEngine');
 const { initWebSocket, broadcast } = require('./websocket');
-
+const betsRoutes = require('./routes/bets');
 const authRoutes = require('./routes/auth');
 const loginLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 15 minutes
@@ -385,7 +385,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
+app.use('/api', betsRoutes);
 
 
 // Prevent caching (important after logout)
