@@ -1076,30 +1076,48 @@ body, html {
             iframe.src = newSrc;
         }
     }
+    let lastStreamState = null;
+
     function handleStreamToggle(enabled) {
         const iframe = document.getElementById("videoFrame");
         const placeholder = document.getElementById("videoPlaceholder");
 
         if (!iframe || !placeholder) return;
 
-        const balance = Number(document.getElementById('balance').textContent.replace(/,/g, ''));
+        const balance = Number(
+            document.getElementById('balance')
+                .textContent
+                .replace(/,/g, '')
+        );
 
-        if (enabled && balance > 0) {
+        const shouldShow = enabled && balance > 0;
+
+        // ✅ Prevent unnecessary reloads
+        if (lastStreamState === shouldShow) {
+            return;
+        }
+
+        lastStreamState = shouldShow;
+
+        if (shouldShow) {
+
             // ✅ SHOW VIDEO
             iframe.style.display = "block";
             placeholder.style.display = "none";
 
-            if (currentVideo) {
+            // ✅ Only set src if different
+            if (currentVideo && iframe.src !== currentVideo) {
                 iframe.src = currentVideo;
             }
 
         } else {
-            // ❌ HIDE VIDEO
-            iframe.src = ""; // stop video
-            iframe.style.display = "none";
 
-            // ✅ SHOW PLACEHOLDER
+            // ❌ HIDE VIDEO
+            iframe.style.display = "none";
             placeholder.style.display = "flex";
+
+            // ✅ Stop only when actually disabling
+            iframe.src = "";
         }
     }
     function animateValue(id, start, end) {
