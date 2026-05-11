@@ -623,7 +623,7 @@
             container.innerHTML = 'Loading...';
 
             try {
-                const res = await fetch(`/api/network/${userId}`, {
+                const res = await fetch(`/api/superadmin/network/${userId}`, {
                     credentials: 'include'
                 });
 
@@ -660,7 +660,7 @@
             list.forEach(user => {
                 html += `
                     <tr>
-                        <td>${user.username}</td>
+                        <td>${'— '.repeat(user.level - 1)}${user.username}</td>
                         <td>${formatRole(user.role)}</td>
                         <td>${formatPHP(user.points || 0)}</td>
                         <td class="status ${user.status}">

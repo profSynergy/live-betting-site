@@ -157,5 +157,73 @@ router.get('/dashboard', isSuperAdmin, async (req, res) => {
         });
     }
 });
+// =========================
+// NETWORK API
+// SHOW FULL DOWNLINE TREE
+// =========================
+router.get('/network/:id', isSuperAdmin, async (req, res) => {
 
+    const { id } = req.params;
+
+    try {
+
+        const result = await pool.query(`
+            WITH RECURSIVE network AS (
+
+                -- DIRECT DOWNLINES
+                SELECT
+                    u.id,
+                    u.username,
+                    u.role,
+                    u.points,
+                    u.status,
+                    u.parent_id,
+                    1 AS level
+                FROM users u
+                WHERE u.parent_id = $1
+
+                UNION ALL
+
+                -- CHILD DOWNLINES
+                SELECT
+                    child.id,
+                    child.username,
+                    child.role,
+                    child.points,
+                    child.status,
+                    child.parent_id,
+                    network.level + 1
+                FROM users child
+                INNER JOIN network
+                    ON child.parent_id = network.id
+            )
+
+            SELECT
+                network.id,
+                network.username,
+                network.role,
+                network.points,
+                network.status,
+                network.level,
+                parent.username AS parent_username
+            FROM network
+            LEFT JOIN users parent
+                ON network.parent_id = parent.id
+
+            ORDER BY
+                network.level ASC,
+                network.username ASC
+        `, [id]);
+
+        res.json(result.rows);
+
+    } catch (err) {
+
+        console.error("❌ NETWORK ERROR:", err);
+
+        res.status(500).json({
+            error: 'Failed to load network'
+        });
+    }
+});
 module.exports = router;
