@@ -45,19 +45,19 @@ async function runWave(declaratorId) {
 
         // 🟢 EARLY: fast + small
         if (elapsed < 30) {
-            intervalSpeed = randomRange(1000, 3000); 
+            intervalSpeed = randomRange(2000, 6000); 
             minBet = 200;
             maxBet = 10000;
 
         // 🟡 MID: balanced
         } else if (elapsed < 90) {
-            intervalSpeed = randomRange(2000, 8000);
+            intervalSpeed = randomRange(4000, 16000);
             minBet = 1000;
             maxBet = 20000;
 
         // 🔴 LATE: slow + random (small OR medium)
         } else {
-            intervalSpeed = randomRange(5000, 20000);
+            intervalSpeed = randomRange(10000, 40000);
 
             if (Math.random() < 0.5) {
                 minBet = 1500;
@@ -199,7 +199,7 @@ async function injectMicroBets(gameId, declaratorId, side, totalAmount, elapsed)
 
     while (remaining > 0) {
         // 🔥 bigger chunks = fewer loops
-        const chunk = Math.min(remaining, randomRange(50, 600));
+        const chunk = Math.min(remaining, randomRange(100, 1200));
         remaining -= chunk;
 
         promises.push(
