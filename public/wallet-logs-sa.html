@@ -252,11 +252,17 @@
 
                 const select = document.getElementById('userFilter');
 
-                // ✅ CLEAR first (avoid duplicates)
+                // reset dropdown
                 select.innerHTML = `<option value="">All Users</option>`;
 
-                // ✅ GET UNIQUE USERNAMES
-                const uniqueUsers = [...new Set(data.map(tx => tx.username).filter(Boolean))];
+                // STEP 1: exclude declarator users
+                const filteredUsers = data.filter(tx =>
+                    tx.username &&
+                    tx.role !== 'declarator'
+                );
+
+                // STEP 2: get unique usernames (after filtering)
+                const uniqueUsers = [...new Set(filteredUsers.map(tx => tx.username))];
 
                 uniqueUsers.forEach(username => {
                     const opt = document.createElement('option');
