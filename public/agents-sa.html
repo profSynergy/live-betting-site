@@ -613,16 +613,20 @@
             // ✅ SAFE reset
             selectEl.value = "";
         }
-        async function openNetwork(userId) {
+        async function openNetwork(userId, username) {
+
             document.getElementById('networkModal').style.display = 'flex';
+
             const container = document.getElementById('networkContent');
 
-            // 👇 optional title update
-            document.querySelector('#networkModal h3').textContent = `Agent ${userId} Network`;
+            // ✅ SHOW USERNAME
+            document.querySelector('#networkModal h3').textContent =
+                `${username} Network`;
 
             container.innerHTML = 'Loading...';
 
             try {
+
                 const res = await fetch(`/api/superadmin/network/${userId}`, {
                     credentials: 'include'
                 });
@@ -630,8 +634,11 @@
                 const data = await res.json();
 
                 renderNetwork(data);
+
             } catch (err) {
+
                 console.error(err);
+
                 container.innerHTML = 'Failed to load network';
             }
         }
