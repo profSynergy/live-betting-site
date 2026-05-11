@@ -170,7 +170,7 @@ router.get('/network/:id', isSuperAdmin, async (req, res) => {
         const result = await pool.query(`
             WITH RECURSIVE network AS (
 
-                -- START FROM SELECTED USER (IMPORTANT FIX)
+                -- DIRECT DOWNLINES ONLY (SAFE START)
                 SELECT
                     u.id,
                     u.username,
@@ -180,11 +180,11 @@ router.get('/network/:id', isSuperAdmin, async (req, res) => {
                     u.parent_id,
                     1 AS level
                 FROM users u
-                WHERE u.id = $1
+                WHERE u.parent_id = $1
 
                 UNION ALL
 
-                -- GET ALL DOWNLINES
+                -- NEXT LEVELS
                 SELECT
                     child.id,
                     child.username,
@@ -209,8 +209,6 @@ router.get('/network/:id', isSuperAdmin, async (req, res) => {
             FROM network n
             LEFT JOIN users p
                 ON n.parent_id = p.id
-
-            WHERE n.id != $1   -- remove root user itself
 
             ORDER BY n.level ASC, n.username ASC
         `, [id]);
