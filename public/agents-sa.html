@@ -748,6 +748,20 @@
                 showSnackbar("Logout failed", "error");
             }
         }
+        function formatRole(role) {
+            switch (role) {
+                case 'master_agent':
+                    return '🗃️ Incorporator';
+                case 'sub_agent':
+                    return '📑 Master Agent';
+                case 'agent':
+                    return '🏷️ Gold Agent';
+                case 'player':
+                    return '🧑 Player';
+                default:
+                    return role || '-';
+            }
+        }
         // =========================
         // Init
         // =========================

@@ -222,7 +222,7 @@ router.get('/network/:id', isSuperAdmin, async (req, res) => {
         console.error("❌ NETWORK ERROR:", err);
 
         res.status(500).json({
-            error: 'Failed to load networksssss'
+            error: 'Failed to load network'
         });
     }
 });
