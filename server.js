@@ -2260,7 +2260,33 @@ app.get('/api/commission-summary', async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 });
+// ==========================
+// NETWORK API (SHOWS DIRECT DOWNLINE WITH PARENT USERNAME)
+// ==========================
+app.get('/api/network/:id', async (req, res) => {
+    const { id } = req.params;
 
+    try {
+        const result = await pool.query(`
+            SELECT 
+                u.id,
+                u.username,
+                u.role,
+                u.points,
+                u.status,
+                p.username AS parent_username
+            FROM users u
+            LEFT JOIN users p ON u.parent_id = p.id
+            WHERE u.parent_id = $1
+            ORDER BY u.created_at DESC
+        `, [id]);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to load network' });
+    }
+});
 
 
 const PORT = process.env.PORT || 3000;
