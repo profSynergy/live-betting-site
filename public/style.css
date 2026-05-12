@@ -881,3 +881,23 @@ button:disabled {
 .convert-btn:hover{
     background:#218838;
 }
+
+.btn-confirm {
+    background: #16a34a;
+    color: white;
+    width: 100%;
+}
+
+.btn-confirm:hover {
+    background: #15803d;
+}
+
+.btn-cancel {
+    background: #ef4444;
+    color: white;
+    width: 100%;
+}
+
+.btn-cancel:hover {
+    background: #dc2626;
+}

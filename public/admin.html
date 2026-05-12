@@ -138,21 +138,35 @@
             <!-- CONVERT COMMISSION MODAL -->
             <div id="convertModal" class="modal" style="display:none;">
                 <div class="modal-content">
+
                     <h3>Convert Commission</h3>
 
-                    <p>Available commission: <span id="availableCommission">0</span></p>
+                    <p class="modal-subtext">
+                        Available: <strong id="availableCommission">0</strong>
+                    </p>
 
                     <input 
                         type="number" 
                         id="convertAmount" 
-                        placeholder="Enter amount to convert"
+                        placeholder="Enter amount"
                         min="1"
                     />
 
-                    <div class="modal-actions">
-                        <button onclick="submitConvert()">Confirm</button>
-                        <button onclick="closeConvertModal()">Cancel</button>
+                    <!-- preview box -->
+                    <div class="convert-preview">
+                        You are about to convert: 
+                        <span id="previewAmount">0</span>
                     </div>
+
+                    <div class="modal-actions">
+                        <button class="btn-confirm" onclick="submitConvert()">
+                            Confirm Convert
+                        </button>
+                        <button class="btn-cancel" onclick="closeConvertModal()">
+                            Cancel
+                        </button>
+                    </div>
+
                 </div>
             </div>
         <!-- FOOTER -->
