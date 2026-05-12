@@ -62,7 +62,7 @@
                             <input class="membership-link" type="text" value="" readonly>
                         </div>
                         <button class="copy-btn" onclick="copyLink()">COPY YOUR LINK</button>
-                        <button class="copy-btn convert-btn" onclick="convertCommission()">
+                        <button class="copy-btn convert-btn" onclick="openConvertModal()">
                             CONVERT COMMISSION
                         </button>
                     </div>
@@ -135,7 +135,26 @@
                 </div>
 
             </div>
+            <!-- CONVERT COMMISSION MODAL -->
+            <div id="convertModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <h3>Convert Commission</h3>
 
+                    <p>Available commission: <span id="availableCommission">0</span></p>
+
+                    <input 
+                        type="number" 
+                        id="convertAmount" 
+                        placeholder="Enter amount to convert"
+                        min="1"
+                    />
+
+                    <div class="modal-actions">
+                        <button onclick="submitConvert()">Confirm</button>
+                        <button onclick="closeConvertModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
         <!-- FOOTER -->
         <footer>
             © 2024 <span class="website-name"></span>. All rights reserved.
@@ -414,6 +433,74 @@
             } catch (err) {
                 console.error(err);
                 showSnackbar("Logout failed", "error");
+            }
+        }
+        let AVAILABLE_COMMISSION = 0;
+
+        // open modal
+        async function openConvertModal() {
+            try {
+                const res = await fetch('/api/dashboard-wallets', { credentials: 'include' });
+                const data = await res.json();
+
+                AVAILABLE_COMMISSION = Number(data.commissionEarnings || 0);
+
+                document.getElementById('availableCommission').textContent = AVAILABLE_COMMISSION.toFixed(2);
+                document.getElementById('convertAmount').value = "";
+
+                document.getElementById('convertModal').style.display = "flex";
+
+            } catch (err) {
+                console.error(err);
+                showSnackbar("Failed to load commission", "error");
+            }
+        }
+
+        // close modal
+        function closeConvertModal() {
+            document.getElementById('convertModal').style.display = "none";
+        }
+
+        // submit conversion
+        async function submitConvert() {
+            try {
+                const amount = Number(document.getElementById('convertAmount').value);
+
+                if (!amount || amount <= 0) {
+                    showSnackbar("Enter valid amount", "error");
+                    return;
+                }
+
+                if (amount > AVAILABLE_COMMISSION) {
+                    showSnackbar("Not enough commission", "error");
+                    return;
+                }
+
+                const confirmed = confirm(`Convert ${amount} commission?`);
+                if (!confirmed) return;
+
+                const res = await fetch('/api/convert-commission', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showSnackbar(data.error || "Conversion failed", "error");
+                    return;
+                }
+
+                showSnackbar(data.message || "Converted successfully");
+
+                closeConvertModal();
+                loadDashboardWallets();
+
+            } catch (err) {
+                console.error(err);
+                showSnackbar("Server error", "error");
             }
         }
         // Call after session check

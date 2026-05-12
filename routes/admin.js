@@ -24,14 +24,16 @@ router.post('/convert-commission', isAuthenticated, async (req, res) => {
     const client = await pool.connect();
 
     try {
-
         await client.query('BEGIN');
 
         const userId = req.session.user.id;
+        const amount = Number(req.body.amount || 0);
 
-        // ==========================
-        // Lock user row
-        // ==========================
+        if (!amount || amount <= 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Invalid amount' });
+        }
+
         const userRes = await client.query(`
             SELECT points, commission_earnings
             FROM users
@@ -40,109 +42,72 @@ router.post('/convert-commission', isAuthenticated, async (req, res) => {
         `, [userId]);
 
         if (!userRes.rows.length) {
-
             await client.query('ROLLBACK');
-
-            return res.status(404).json({
-                error: 'User not found'
-            });
+            return res.status(404).json({ error: 'User not found' });
         }
 
         const user = userRes.rows[0];
 
         const currentPoints = Number(user.points || 0);
-
         const commission = Number(user.commission_earnings || 0);
 
-        // ==========================
-        // No commission available
-        // ==========================
         if (commission <= 0) {
-
             await client.query('ROLLBACK');
-
-            return res.status(400).json({
-                error: 'No commission available'
-            });
+            return res.status(400).json({ error: 'No commission available' });
         }
 
-        const newBalance = currentPoints + commission;
+        if (amount > commission) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Insufficient commission' });
+        }
 
-        // ==========================
-        // Update user balances
-        // ==========================
+        const newBalance = currentPoints + amount;
+        const remainingCommission = commission - amount;
+
+        // update user
         await client.query(`
             UPDATE users
-            SET
-                points = $1,
-                commission_earnings = 0,
+            SET points = $1,
+                commission_earnings = $2,
                 updated_at = NOW()
-            WHERE id = $2
-        `, [newBalance, userId]);
+            WHERE id = $3
+        `, [newBalance, remainingCommission, userId]);
 
-        // ==========================
-        // Wallet transaction log
-        // ==========================
+        // log wallet
         await client.query(`
             INSERT INTO wallet_transactions
-            (
-                user_id,
-                type,
-                amount,
-                balance_after,
-                description,
-                reference_id
-            )
-            VALUES
-            (
-                $1,
-                'credit',
-                $2,
-                $3,
-                $4,
-                $5
-            )
+            (user_id, type, amount, balance_after, description, reference_id)
+            VALUES ($1, 'credit', $2, $3, $4, NULL)
         `, [
             userId,
-            commission,
+            amount,
             newBalance,
-            'Commission converted to wallet points',
-            null
+            'Partial commission conversion'
         ]);
 
-        // ==========================
-        // Mark commission records converted
-        // ==========================
+        // mark commissions as used (optional partial-safe version)
         await client.query(`
             UPDATE commission_transactions
             SET status = 0
-            WHERE user_id = $1
-            AND status = 1
+            WHERE user_id = $1 AND status = 1
         `, [userId]);
 
         await client.query('COMMIT');
 
         res.json({
             success: true,
-            converted: commission,
+            converted: amount,
+            remainingCommission,
             newBalance,
             message: 'Commission converted successfully'
         });
 
     } catch (err) {
-
         await client.query('ROLLBACK');
-
         console.error(err);
-
-        res.status(500).json({
-            error: 'Server error'
-        });
-
+        res.status(500).json({ error: 'Server error' });
     } finally {
-
         client.release();
-
     }
 });
 
