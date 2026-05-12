@@ -28,7 +28,7 @@ const loginLimiter = rateLimit({
 const http = require('http');
 const server = http.createServer(app);
 const superadminRoutes = require('./routes/superadmin');
-
+const adminRoutes = require('./routes/admin');
 app.get('/api/config', (req, res) => {
     res.json({
         websiteName: process.env.WEBSITE_NAME,
@@ -416,6 +416,7 @@ app.use(session({
 }));
 app.use('/api', authRoutes);
 app.use('/api/superadmin', superadminRoutes);
+app.use('/api', adminRoutes);
 // ==========================
 // AUTH MIDDLEWARE
 // ==========================

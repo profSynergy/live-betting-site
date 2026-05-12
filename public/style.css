@@ -872,3 +872,12 @@ button:disabled {
 #securityModal h3 {
     color: #f87171; /* slight red tone */
 }
+
+.convert-btn{
+    margin-top:10px;
+    background:#28a745;
+}
+
+.convert-btn:hover{
+    background:#218838;
+}
