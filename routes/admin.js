@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/connection');
-const { v4: uuidv4 } = require('uuid');
+
 // ==========================
 // AUTH MIDDLEWARE
 // ==========================
@@ -15,6 +15,7 @@ function isAuthenticated(req, res, next) {
 
     next();
 }
+
 // ==========================
 // CONVERT COMMISSION
 // ==========================
@@ -106,7 +107,7 @@ router.post('/convert-commission', isAuthenticated, async (req, res) => {
             commission,
             newBalance,
             'Commission converted to wallet points',
-            uuidv4()
+            null
         ]);
 
         // ==========================
